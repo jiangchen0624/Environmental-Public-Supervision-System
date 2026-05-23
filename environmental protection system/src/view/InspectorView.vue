@@ -86,8 +86,10 @@ import { levelName, levelTagType } from '@/util/helpers'
 
 const router = useRouter()
 
+interface InspectorTask { id: number; province: string; city: string; pm25Level: number; so2Level: number; coLevel: number; overallLevel: number; status: string; supervisorName: string; createTime: string }
+
 const userStore = useUserStore()
-const tasks = ref<any[]>([])
+const tasks = ref<InspectorTask[]>([])
 const dlg = ref(false)
 const submitting = ref(false)
 const form = reactive({ id: 0, city: '', supervisorOverall: 0, pm25Raw: 0, so2Raw: 0, coRaw: 0, notes: '' })
@@ -109,12 +111,12 @@ const measureOverall = computed(() => Math.max(pm25Level.value, so2Level.value, 
 
 function loadTasks() {
   get(`/report/myTasks?assigneeId=${userStore.user?.id}`)
-    .then((d) => { tasks.value = (d.data as any[]) || [] })
+    .then((d) => { tasks.value = (d.data as InspectorTask[]) || [] })
     .catch(() => ElMessage.error('加载任务列表失败'))
 }
 onMounted(loadTasks)
 
-function open(row: any) {
+function open(row: InspectorTask) {
   Object.assign(form, { id: row.id, city: row.city, supervisorOverall: row.overallLevel, pm25Raw: 0, so2Raw: 0, coRaw: 0, notes: '' })
   dlg.value = true
 }

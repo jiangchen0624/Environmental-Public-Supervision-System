@@ -265,19 +265,21 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Monitor, Sunny, Plus, Right, Upload, Clock, ArrowLeft } from '@element-plus/icons-vue'
+import { Monitor, Sunny, Plus, Right, Upload, ArrowLeft } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { post, get } from '@/util/request'
 import { levelName, levelTagType, statusTagType } from '@/util/helpers'
 
 const router = useRouter()
+interface ReportRow { id: number; province: string; city: string; pm25Level: number; so2Level: number; coLevel: number; overallLevel: number; status: string; assigneeName: string; supervisorName: string; measuredPm25?: number; measuredSo2?: number; measuredCo?: number; measuredOverall?: number; createTime: string }
+
 const userStore = useUserStore()
 const tab = ref('submit')
 
-const myReports = ref<any[]>([])
+const myReports = ref<ReportRow[]>([])
 const L = levelName
 const T = levelTagType
 const ST = statusTagType
@@ -285,7 +287,7 @@ const ST = statusTagType
 function loadMyReports() {
   if (userStore.user?.id)
     get(`/report/list?supervisorId=${userStore.user.id}`)
-      .then((d) => { myReports.value = (d.data as any[]) || [] })
+      .then((d) => { myReports.value = (d.data as ReportRow[]) || [] })
       .catch(() => ElMessage.error('加载上报记录失败'))
 }
 onMounted(loadMyReports)
@@ -312,7 +314,6 @@ const checks = ref({
   source: [] as string[],
 })
 
-import { watch } from 'vue'
 // 视觉选几级 → PM2.5 自动跳几级
 watch(() => checks.value.visualLevel, (v) => { pm25Level.value = v })
 // 嗅觉选几级 → SO₂ 自动跳几级
@@ -362,7 +363,6 @@ function submitReport() {
 .top-banner { width: 100%; background: linear-gradient(135deg, #2e7d32 0%, #388e3c 40%, #43a047 100%); color: #fff; text-align: center; padding: 14px 0; font-size: 18px; font-weight: 500; letter-spacing: 2px; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 2px 12px rgba(46,125,50,0.3); flex-shrink: 0; }
 .main-container { padding: 20px 40px 40px; max-width: 1300px; margin: 0 auto; }
 
-.guide-card { }
 .guide-text { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; font-size: 14px; color: #555; }
 .guide-text .sep { color: #ccc; }
 

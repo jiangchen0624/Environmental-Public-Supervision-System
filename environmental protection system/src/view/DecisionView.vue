@@ -72,24 +72,58 @@ import * as echarts from 'echarts'
 
 const router = useRouter()
 
+interface DetectStats { total: number; good: number; over: number }
+interface CoverageStats {
+  coveredProvinces: number; totalProvinces: number; provinceRate: number
+  coveredCities: number; totalCities: number; cityRate: number
+  provinceList: string[]; cityList: string[]
+}
+interface ProvinceTableRow {
+  province: string; so2超标: number; co超标: number; pm25超标: number
+  aqi超标: number; maxPct: number
+}
+interface CityGridItem { name: string; covered: boolean }
+
 const userStore = useUserStore()
-const detectStats = ref({ total: 0, good: 0, over: 0 })
-const coverStats = ref({ coveredProvinces: 0, totalProvinces: 34, provinceRate: 0, coveredCities: 0, totalCities: 373, cityRate: 0, provinceList: [], cityList: [] })
-const distChart = ref<HTMLElement>(); const trendChart = ref<HTMLElement>(); const detectPieChart = ref<HTMLElement>()
-const cColor = (r: number) => r < 30 ? '#f44336' : r < 60 ? '#ff9800' : r < 80 ? '#2196f3' : '#4caf50'
-const provinceGrid = computed(() => {
-  const list = allProvinces.map(p => ({ name: p, covered: coverStats.value.provinceList?.includes(p) || false }))
-  return list.sort((a, b) => (b.covered ? 1 : -1) - (a.covered ? 1 : -1))
-})
-const provTable = ref<any[]>([])
+const detectStats = ref<DetectStats>({ total: 0, good: 0, over: 0 })
+const coverStats = ref<CoverageStats>({ coveredProvinces: 0, totalProvinces: 34, provinceRate: 0, coveredCities: 0, totalCities: 373, cityRate: 0, provinceList: [] as string[], cityList: [] as string[] })
+const distChart = ref<HTMLElement>()
+const trendChart = ref<HTMLElement>()
+const detectPieChart = ref<HTMLElement>()
+const provTable = ref<ProvinceTableRow[]>([])
 const selProvince = ref('')
 
-const provinceCities = provinceCitiesMap
-const selCityGrid = computed(() => (provinceCities[selProvince.value] || []).map(c => ({ name: c, covered: coverStats.value.cityList?.includes(c) || false })))
+function colorByRate(r: number): string {
+  if (r < 30) return '#f44336'
+  if (r < 60) return '#ff9800'
+  if (r < 80) return '#2196f3'
+  return '#4caf50'
+}
+const cColor = colorByRate
 
-// ECharts 实例管理
+const provinceGrid = computed<{ name: string; covered: boolean }[]>(() => {
+  const list = allProvinces.map((p: string) => ({
+    name: p, covered: coverStats.value.provinceList.includes(p),
+  }))
+  return list.sort((a, b) => (b.covered ? 1 : -1) - (a.covered ? 1 : -1))
+})
+
+const provinceCities: Record<string, string[]> = provinceCitiesMap
+const selCityGrid = computed<CityGridItem[]>(() => {
+  const cities: string[] = provinceCities[selProvince.value] || []
+  return cities.map((c: string) => ({
+    name: c, covered: coverStats.value.cityList.includes(c),
+  }))
+})
+
 const chartInstances: echarts.ECharts[] = []
 function initChart(el: HTMLElement): echarts.ECharts {
+  const existing = echarts.getInstanceByDom(el)
+  if (existing) {
+    const idx = chartInstances.indexOf(existing)
+    if (idx > -1) chartInstances.splice(idx, 1)
+    existing.dispose()
+  }
   const instance = echarts.init(el)
   chartInstances.push(instance)
   return instance
@@ -105,40 +139,73 @@ onMounted(async () => {
       get('/stats/detection'),
       get('/stats/coverage'),
     ])
-    detectStats.value = (detect.data as any) || { total: 0, good: 0, over: 0 }
-    coverStats.value = (cover.data as any) || coverStats.value
+    detectStats.value = (detect.data as DetectStats) || { total: 0, good: 0, over: 0 }
+    coverStats.value = (cover.data as CoverageStats) || coverStats.value
 
-    // 省分组表格
-    const pd = prov.data || {}
-    provTable.value = Object.entries(pd).map(([k, v]: [string, any]) => {
-      const total = Math.max(v['aqi超标'] || 1, 1)
-      return { province: k, ...v, maxPct: Math.round(Math.max(v['so2超标'], v['co超标'], v['pm25超标']) / total * 100) }
+    const pd = (prov.data || {}) as Record<string, Record<string, number>>
+    provTable.value = Object.entries(pd).map(([k, v]) => {
+      const aqi = v['aqi超标'] || 1
+      const total = Math.max(aqi, 1)
+      const so2 = v['so2超标'] || 0
+      const co = v['co超标'] || 0
+      const pm25 = v['pm25超标'] || 0
+      return {
+        province: k,
+        so2超标: so2,
+        co超标: co,
+        pm25超标: pm25,
+        aqi超标: aqi,
+        maxPct: Math.round(Math.max(so2, co, pm25) / total * 100),
+      }
     })
 
     await nextTick()
-    // AQI分布
-    const dd = dist.data || {}
+
+    const dd = (dist.data || {}) as Record<string, number>
     const c2 = initChart(distChart.value!)
-    c2.setOption({ tooltip: { trigger: 'item' }, series: [{ type: 'pie', radius: ['45%', '75%'], center: ['50%', '50%'], data: Object.entries(dd).map(([k, v]) => ({ name: k, value: v, itemStyle: { color: k === '优' ? '#4caf50' : k === '良' ? '#2196f3' : k.includes('轻度') ? '#ff9800' : k.includes('中度') ? '#f44336' : '#9c27b0' } })), label: { formatter: '{b}\n{d}%' } }] })
+    c2.setOption({
+      tooltip: { trigger: 'item' },
+      series: [{
+        type: 'pie', radius: ['45%', '75%'], center: ['50%', '50%'],
+        data: Object.entries(dd).map(([k, v]) => ({
+          name: k, value: v,
+          itemStyle: { color: k === '优' ? '#4caf50' : k === '良' ? '#2196f3' : k.includes('轻度') ? '#ff9800' : k.includes('中度') ? '#f44336' : '#9c27b0' },
+        })),
+        label: { formatter: '{b}\n{d}%' },
+      }],
+    })
 
-    // 趋势
-    const td = trend.data || {}
+    const td = (trend.data || {}) as Record<string, number>
     const c3 = initChart(trendChart.value!)
-    c3.setOption({ tooltip: { trigger: 'axis' }, grid: { left: 40, right: 20, bottom: 30, top: 10 }, xAxis: { type: 'category', data: Object.keys(td) }, yAxis: { type: 'value' }, series: [{ data: Object.values(td), type: 'line', smooth: true, areaStyle: { opacity: 0.35 }, itemStyle: { color: '#f44336' }, lineStyle: { width: 3 } }] })
+    c3.setOption({
+      tooltip: { trigger: 'axis' },
+      grid: { left: 40, right: 20, bottom: 30, top: 10 },
+      xAxis: { type: 'category', data: Object.keys(td) },
+      yAxis: { type: 'value' },
+      series: [{ data: Object.values(td), type: 'line', smooth: true, areaStyle: { opacity: 0.35 }, itemStyle: { color: '#f44336' }, lineStyle: { width: 3 } }],
+    })
 
-    // 迷你饼图
     if (detectPieChart.value) {
       const c4 = initChart(detectPieChart.value)
-      c4.setOption({ series: [{ type: 'pie', radius: ['55%', '80%'], center: ['50%', '50%'], data: [{ name: '良好', value: detectStats.value.good, itemStyle: { color: '#4caf50' } }, { name: '超标', value: detectStats.value.over, itemStyle: { color: '#f44336' } }], label: { show: false } }] })
+      c4.setOption({
+        series: [{
+          type: 'pie', radius: ['55%', '80%'], center: ['50%', '50%'],
+          data: [
+            { name: '良好', value: detectStats.value.good, itemStyle: { color: '#4caf50' } },
+            { name: '超标', value: detectStats.value.over, itemStyle: { color: '#f44336' } },
+          ],
+          label: { show: false },
+        }],
+      })
     }
   } catch {
     ElMessage.error('加载可视化数据失败，请检查后端服务')
   }
 })
 
-function cityCoverCount(province: string) {
-  const cities = provinceCities[province] || []
-  const covered = cities.filter(c => coverStats.value.cityList?.includes(c)).length
+function cityCoverCount(province: string): string {
+  const cities: string[] = provinceCities[province] || []
+  const covered = cities.filter((c: string) => coverStats.value.cityList.includes(c)).length
   return covered + '/' + cities.length
 }
 </script>

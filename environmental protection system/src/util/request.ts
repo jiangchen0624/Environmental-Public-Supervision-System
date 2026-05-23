@@ -1,6 +1,6 @@
 const BASE_URL = '/api'
 
-interface ApiResult {
+export interface ApiResult {
   code: number
   msg: string
   [key: string]: unknown

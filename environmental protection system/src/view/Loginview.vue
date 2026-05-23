@@ -83,6 +83,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { post } from '@/util/request'
 import { useUserStore } from '@/stores/user'
+import type { UserInfo } from '@/stores/user'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -113,8 +114,9 @@ const login = () => {
       loading.value = false
       if (result.code === 200) {
         // 类型断言以避免 result.data 为 unknown 导致的类型错误
-        userStore.setUser(result.data as any)
-        ElMessage.success(`登录成功！身份：${loginRole.value} —— ${(result.data as any)?.name || ''}`)
+        const userData = result.data as UserInfo
+        userStore.setUser(userData)
+        ElMessage.success(`登录成功！身份：${loginRole.value} —— ${userData?.name || ''}`)
         const redirect = router.currentRoute.value.query.redirect as string
         router.push(redirect || '/')
       } else {

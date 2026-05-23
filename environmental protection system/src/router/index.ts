@@ -3,9 +3,9 @@
  * 四端：NEPS监督员 | NEPG网格员 | NEPM管理员 | NEPV决策者
  */
 import { createRouter, createWebHistory } from 'vue-router'
-import Homeview from '@/view/Homeview.vue'
+import Homeview from '@/view/HomeView.vue'
 import RegistView from '@/view/RegistView.vue'
-import Loginview from '@/view/Loginview.vue'
+import Loginview from '@/view/LoginView.vue'
 import ReportView from '@/view/ReportView.vue'
 import AdminView from '@/view/AdminView.vue'
 import InspectorView from '@/view/InspectorView.vue'
@@ -55,7 +55,7 @@ router.beforeEach((to, _from) => {
   // 从 sessionStorage 读取登录态
   const token = sessionStorage.getItem('token')
   const userStr = sessionStorage.getItem('user')
-  const user = userStr ? JSON.parse(userStr) : null
+  const user: { role: string } | null = userStr ? JSON.parse(userStr) as { role: string } : null
 
   if (to.meta.requiresAuth) {
     if (!token || !user) {

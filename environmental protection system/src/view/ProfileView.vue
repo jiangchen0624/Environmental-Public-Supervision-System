@@ -37,7 +37,8 @@ import { ElMessage } from 'element-plus'
 import { UserFilled } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import { post } from '@/util/request'
+import type { UserInfo } from '@/stores/user'
+import { post, type ApiResult } from '@/util/request'
 import { areaData } from '@/util/area-data'
 
 const router = useRouter()
@@ -53,7 +54,7 @@ const pwd = reactive({ old: '', new1: '', new2: '' })
 function saveProfile() {
   saving.value = true
   post('/user/updateProfile', { id: String(userStore.user?.id||''), name: profile.name, province: profile.province, city: profile.city })
-    .then((r:any) => { saving.value = false; if(r.code===200){ userStore.setUser(r.data); ElMessage.success('个人信息已更新') } })
+    .then((r: ApiResult) => { saving.value = false; if(r.code===200){ userStore.setUser(r.data as UserInfo); ElMessage.success('个人信息已更新') } })
 }
 function changePwd() {
   if (!pwd.old || !pwd.new1) { ElMessage.error('请填写完整'); return }
@@ -61,7 +62,7 @@ function changePwd() {
   if (pwd.new1.length < 6) { ElMessage.error('新密码至少6位'); return }
   changing.value = true
   post('/user/changePassword', { id: String(userStore.user?.id||''), oldPassword: pwd.old, newPassword: pwd.new1 })
-    .then((r:any) => { changing.value = false; if(r.code===200){ ElMessage.success('密码已修改'); pwd.old='';pwd.new1='';pwd.new2='' } else ElMessage.error(r.msg) })
+    .then((r: ApiResult) => { changing.value = false; if(r.code===200){ ElMessage.success('密码已修改'); pwd.old='';pwd.new1='';pwd.new2='' } else ElMessage.error(r.msg) })
 }
 </script>
 

@@ -7,10 +7,6 @@
 </template>
 
 <script setup lang="ts">
-// 导入页脚组件
-import FooterView from '@/view/Footerview.vue'
+import FooterView from '@/view/FooterView.vue'
 </script>
 
-<style scoped lang="css">
-/* 根组件样式（当前为空） */
-</style>

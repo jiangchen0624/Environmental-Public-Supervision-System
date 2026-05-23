@@ -31,29 +31,29 @@
             <el-button @click="loadAll" type="primary" size="small">刷新</el-button>
           </div>
           <el-table :data="pagedList" border stripe size="small" @row-click="showDetail" style="cursor:pointer" max-height="460">
-            <el-table-column prop="id" label="ID" w="50"/><el-table-column prop="province" label="省" w="60"/><el-table-column prop="city" label="市" w="75"/>
-            <el-table-column label="PM2.5/SO₂/CO" w="140"><template #default="{row}">{{ L(row.pm25Level) }}/{{ L(row.so2Level) }}/{{ L(row.coLevel) }}</template></el-table-column>
-            <el-table-column label="综合" w="70"><template #default="{row}"><el-tag :type="T(row.overallLevel)" size="small">{{ L(row.overallLevel) }}</el-tag></template></el-table-column>
-            <el-table-column label="状态" w="70"><template #default="{row}"><el-tag :type="ST(row.status)" size="small">{{ row.status }}</el-tag></template></el-table-column>
-            <el-table-column prop="assigneeName" label="网格员" w="70"/>
-            <el-table-column label="操作" w="130"><template #default="{row}"><el-button v-if="row.status==='待指派'" type="warning" size="small" @click.stop="openAssign(row)">指派</el-button><el-button type="danger" size="small" @click.stop="del(row.id)">删除</el-button></template></el-table-column>
+            <el-table-column prop="id" label="ID" width="50"/><el-table-column prop="province" label="省" width="60"/><el-table-column prop="city" label="市" width="75"/>
+            <el-table-column label="PM2.5/SO₂/CO" width="140"><template #default="{row}">{{ L(row.pm25Level) }}/{{ L(row.so2Level) }}/{{ L(row.coLevel) }}</template></el-table-column>
+            <el-table-column label="综合" width="70"><template #default="{row}"><el-tag :type="T(row.overallLevel)" size="small">{{ L(row.overallLevel) }}</el-tag></template></el-table-column>
+            <el-table-column label="状态" width="70"><template #default="{row}"><el-tag :type="ST(row.status)" size="small">{{ row.status }}</el-tag></template></el-table-column>
+            <el-table-column prop="assigneeName" label="网格员" width="70"/>
+            <el-table-column label="操作" width="130"><template #default="{row}"><el-button v-if="row.status==='待指派'" type="warning" size="small" @click.stop="openAssign(row)">指派</el-button><el-button type="danger" size="small" @click.stop="del(row.id)">删除</el-button></template></el-table-column>
           </el-table>
           <el-pagination v-model:current-page="page" :page-size="10" :total="filteredList.length" layout="prev,pager,next" style="margin-top:10px;justify-content:center" />
         </template>
 
         <!-- 确认AQI数据列表 -->
         <template v-if="menu==='confirmed'">
-          <el-table :data="confirmedList" border stripe size="small" max-height="520" @row-click="c=>showDetail(c)" style="cursor:pointer">
-            <el-table-column prop="id" label="ID" w="45"/><el-table-column prop="province" label="省" w="55"/><el-table-column prop="city" label="市" w="70"/>
-            <el-table-column label="目测 PM2.5/SO₂/CO" w="135"><template #default="{row}">{{ L(row.pm25Level) }}/{{ L(row.so2Level) }}/{{ L(row.coLevel) }}</template></el-table-column>
-            <el-table-column label="目测" w="60"><template #default="{row}"><el-tag :type="T(row.overallLevel)" size="small">{{ L(row.overallLevel) }}</el-tag></template></el-table-column>
-            <el-table-column label="实测 PM2.5" w="90"><template #default="{row}"><b v-if="row.pm25Raw!=null">{{ row.pm25Raw }}μg</b><span v-else style="color:#ccc">—</span></template></el-table-column>
-            <el-table-column label="实测 SO₂" w="90"><template #default="{row}"><b v-if="row.so2Raw!=null">{{ row.so2Raw }}μg</b><span v-else style="color:#ccc">—</span></template></el-table-column>
-            <el-table-column label="实测 CO" w="90"><template #default="{row}"><b v-if="row.coRaw!=null">{{ row.coRaw }}mg</b><span v-else style="color:#ccc">—</span></template></el-table-column>
-            <el-table-column label="实测等级" w="70"><template #default="{row}"><el-tag v-if="row.measuredOverall!=null" :type="T(row.measuredOverall)" size="small">{{ L(row.measuredOverall) }}</el-tag></template></el-table-column>
-            <el-table-column label="偏差" w="65"><template #default="{row}"><span v-if="row.measuredOverall!=null" :style="{color:row.measuredOverall>row.overallLevel?'#f44336':row.measuredOverall<row.overallLevel?'#4caf50':'#999'}">{{ row.measuredOverall>row.overallLevel?'↑高':row.measuredOverall<row.overallLevel?'↓低':'=' }}</span></template></el-table-column>
-            <el-table-column prop="assigneeName" label="检测人" w="65"/>
-            <el-table-column prop="notes" label="备注" min-w="100" show-overflow-tooltip/>
+          <el-table :data="confirmedList" border stripe size="small" max-height="520" @row-click="showDetail" style="cursor:pointer">
+            <el-table-column prop="id" label="ID" width="45"/><el-table-column prop="province" label="省" width="55"/><el-table-column prop="city" label="市" width="70"/>
+            <el-table-column label="目测 PM2.5/SO₂/CO" width="135"><template #default="{row}">{{ L(row.pm25Level) }}/{{ L(row.so2Level) }}/{{ L(row.coLevel) }}</template></el-table-column>
+            <el-table-column label="目测" width="60"><template #default="{row}"><el-tag :type="T(row.overallLevel)" size="small">{{ L(row.overallLevel) }}</el-tag></template></el-table-column>
+            <el-table-column label="实测 PM2.5" width="90"><template #default="{row}"><b v-if="row.pm25Raw!=null">{{ row.pm25Raw }}μg</b><span v-else style="color:#ccc">—</span></template></el-table-column>
+            <el-table-column label="实测 SO₂" width="90"><template #default="{row}"><b v-if="row.so2Raw!=null">{{ row.so2Raw }}μg</b><span v-else style="color:#ccc">—</span></template></el-table-column>
+            <el-table-column label="实测 CO" width="90"><template #default="{row}"><b v-if="row.coRaw!=null">{{ row.coRaw }}mg</b><span v-else style="color:#ccc">—</span></template></el-table-column>
+            <el-table-column label="实测等级" width="70"><template #default="{row}"><el-tag v-if="row.measuredOverall!=null" :type="T(row.measuredOverall)" size="small">{{ L(row.measuredOverall) }}</el-tag></template></el-table-column>
+            <el-table-column label="偏差" width="65"><template #default="{row}"><span v-if="row.measuredOverall!=null" :style="{color:row.measuredOverall>row.overallLevel?'#f44336':row.measuredOverall<row.overallLevel?'#4caf50':'#999'}">{{ row.measuredOverall>row.overallLevel?'↑高':row.measuredOverall<row.overallLevel?'↓低':'=' }}</span></template></el-table-column>
+            <el-table-column prop="assigneeName" label="检测人" width="65"/>
+            <el-table-column prop="notes" label="备注" min-width="100" show-overflow-tooltip/>
           </el-table>
         </template>
 
@@ -61,18 +61,18 @@
         <template v-if="menu==='province'">
           <el-button v-if="drillProvince" type="info" size="small" @click="drillProvince=''" style="margin-bottom:8px">← 返回省级汇总</el-button>
           <el-table v-if="!drillProvince" :data="provStats" border stripe size="small" @row-click="drillDown" style="cursor:pointer" highlight-current-row>
-            <el-table-column prop="province" label="省" w="80"/><el-table-column label="SO₂超标" w="80"><template #default="{row}"><el-tag :type="row.so2超标>0?'danger':'info'" size="small">{{ row.so2超标 }}</el-tag></template></el-table-column>
-            <el-table-column label="CO超标" w="80"><template #default="{row}"><el-tag :type="row.co超标>0?'danger':'info'" size="small">{{ row.co超标 }}</el-tag></template></el-table-column>
-            <el-table-column label="PM2.5超标" w="90"><template #default="{row}"><el-tag :type="row.pm25超标>0?'danger':'info'" size="small">{{ row.pm25超标 }}</el-tag></template></el-table-column>
-            <el-table-column label="AQI超标" w="80"><template #default="{row}"><el-tag :type="row.aqi超标>0?'danger':'info'" size="small">{{ row.aqi超标 }}</el-tag></template></el-table-column>
-            <el-table-column label="操作" w="80"><template #default><el-button type="primary" link size="small">市级明细 →</el-button></template></el-table-column>
+            <el-table-column prop="province" label="省" width="80"/><el-table-column label="SO₂超标" width="80"><template #default="{row}"><el-tag :type="row.so2超标>0?'danger':'info'" size="small">{{ row.so2超标 }}</el-tag></template></el-table-column>
+            <el-table-column label="CO超标" width="80"><template #default="{row}"><el-tag :type="row.co超标>0?'danger':'info'" size="small">{{ row.co超标 }}</el-tag></template></el-table-column>
+            <el-table-column label="PM2.5超标" width="90"><template #default="{row}"><el-tag :type="row.pm25超标>0?'danger':'info'" size="small">{{ row.pm25超标 }}</el-tag></template></el-table-column>
+            <el-table-column label="AQI超标" width="80"><template #default="{row}"><el-tag :type="row.aqi超标>0?'danger':'info'" size="small">{{ row.aqi超标 }}</el-tag></template></el-table-column>
+            <el-table-column label="操作" width="80"><template #default><el-button type="primary" link size="small">市级明细 →</el-button></template></el-table-column>
           </el-table>
           <el-table v-if="drillProvince" :data="cityDrillData" border stripe size="small">
-            <el-table-column prop="city" label="市" w="100"/><el-table-column label="SO₂超标" w="80"><template #default="{row}"><el-tag :type="row.so2超标>0?'danger':'info'" size="small">{{ row.so2超标 }}</el-tag></template></el-table-column>
-            <el-table-column label="CO超标" w="80"><template #default="{row}"><el-tag :type="row.co超标>0?'danger':'info'" size="small">{{ row.co超标 }}</el-tag></template></el-table-column>
-            <el-table-column label="PM2.5超标" w="90"><template #default="{row}"><el-tag :type="row.pm25超标>0?'danger':'info'" size="small">{{ row.pm25超标 }}</el-tag></template></el-table-column>
-            <el-table-column label="AQI超标" w="80"><template #default="{row}"><el-tag :type="row.aqi超标>0?'danger':'info'" size="small">{{ row.aqi超标 }}</el-tag></template></el-table-column>
-            <el-table-column label="总数" w="55"><template #default="{row}">{{ row.total }}</template></el-table-column>
+            <el-table-column prop="city" label="市" width="100"/><el-table-column label="SO₂超标" width="80"><template #default="{row}"><el-tag :type="row.so2超标>0?'danger':'info'" size="small">{{ row.so2超标 }}</el-tag></template></el-table-column>
+            <el-table-column label="CO超标" width="80"><template #default="{row}"><el-tag :type="row.co超标>0?'danger':'info'" size="small">{{ row.co超标 }}</el-tag></template></el-table-column>
+            <el-table-column label="PM2.5超标" width="90"><template #default="{row}"><el-tag :type="row.pm25超标>0?'danger':'info'" size="small">{{ row.pm25超标 }}</el-tag></template></el-table-column>
+            <el-table-column label="AQI超标" width="80"><template #default="{row}"><el-tag :type="row.aqi超标>0?'danger':'info'" size="small">{{ row.aqi超标 }}</el-tag></template></el-table-column>
+            <el-table-column label="总数" width="55"><template #default="{row}">{{ row.total }}</template></el-table-column>
           </el-table>
         </template>
 
@@ -120,9 +120,9 @@
         <el-descriptions-item label="PM2.5">{{L(detail.pm25Level)}}级</el-descriptions-item><el-descriptions-item label="SO₂">{{L(detail.so2Level)}}级</el-descriptions-item>
         <el-descriptions-item label="CO">{{L(detail.coLevel)}}级</el-descriptions-item><el-descriptions-item label="综合"><el-tag :type="T(detail.overallLevel)">{{L(detail.overallLevel)}}</el-tag></el-descriptions-item>
         <el-descriptions-item label="状态">{{detail.status}}</el-descriptions-item><el-descriptions-item label="网格员">{{detail.assigneeName||'—'}}</el-descriptions-item>
-        <el-descriptions-item label="实测PM2.5" :span="2">{{detail.pm25Raw?detail.pm25Raw+'μg → '+L(detail.measuredPm25)+'级':'—'}}</el-descriptions-item>
-        <el-descriptions-item label="实测SO₂" :span="2">{{detail.so2Raw?detail.so2Raw+'μg → '+L(detail.measuredSo2)+'级':'—'}}</el-descriptions-item>
-        <el-descriptions-item label="实测CO" :span="2">{{detail.coRaw?detail.coRaw+'mg → '+L(detail.measuredCo)+'级':'—'}}</el-descriptions-item>
+        <el-descriptions-item label="实测PM2.5" :span="2">{{detail.pm25Raw!=null?detail.pm25Raw+'μg → '+L(detail.measuredPm25!)+'级':'—'}}</el-descriptions-item>
+        <el-descriptions-item label="实测SO₂" :span="2">{{detail.so2Raw!=null?detail.so2Raw+'μg → '+L(detail.measuredSo2!)+'级':'—'}}</el-descriptions-item>
+        <el-descriptions-item label="实测CO" :span="2">{{detail.coRaw!=null?detail.coRaw+'mg → '+L(detail.measuredCo!)+'级':'—'}}</el-descriptions-item>
         <el-descriptions-item label="备注" :span="2">{{detail.notes||'—'}}</el-descriptions-item>
       </el-descriptions>
       <template #footer><el-button @click="detailDlg=false">关闭</el-button><el-button v-if="detail&&detail.status==='待指派'" type="warning" @click="detailDlg=false;openAssign(detail)">指派网格员</el-button></template>
@@ -151,14 +151,30 @@ import { levelName, levelTagType, statusTagType } from '@/util/helpers'
 import { allProvinces, provinceCitiesMap } from '@/util/area-data'
 import * as echarts from 'echarts'
 
+interface CoverStats {
+  coveredProvinces: number; totalProvinces: number; provinceRate: number
+  coveredCities: number; totalCities: number; cityRate: number
+  provinceList: string[]; cityList: string[]
+}
+interface ReportItem {
+  id: number; province: string; city: string
+  pm25Level: number; so2Level: number; coLevel: number; overallLevel: number
+  status: string; assigneeName: string; assigneeId: number; supervisorId: number
+  createTime: string
+  measuredPm25?: number; measuredSo2?: number; measuredCo?: number; measuredOverall?: number
+  pm25Raw?: number; so2Raw?: number; coRaw?: number; notes?: string
+}
+interface InspectorItem { id: number; name: string; city: string; role: string }
+
 const router = useRouter(); const userStore = useUserStore()
-const menu = ref('list'); const search = ref(''); const filterStatus = ref(''); const filterLevel = ref<number|null>(null)
-const page = ref(1); const allList = ref<any[]>([]); const statuses = ['待指派','已指派','已检测']
-const detailDlg = ref(false); const detail = ref<any>(null)
-const assignDlg = ref(false); const assignForm = ref({id:0,city:'',assigneeId:0}); const gridInspectors = ref<any[]>([])
-const provStats = ref<any[]>([]); const drillProvince = ref(''); const cityDrillData = ref<any[]>([])
-const detectStats = ref({total:0,good:0,over:0})
-const coverStats = ref({coveredProvinces:0,totalProvinces:34,provinceRate:0,coveredCities:0,totalCities:373,cityRate:0,provinceList:[],cityList:[]})
+const menu = ref('list'); const search = ref(''); const filterStatus = ref(''); const filterLevel = ref<number | null>(null)
+const page = ref(1); const allList = ref<ReportItem[]>([]); const statuses = ['待指派', '已指派', '已检测']
+const detailDlg = ref(false); const detail = ref<ReportItem | null>(null)
+const assignDlg = ref(false); const assignForm = ref({ id: 0, city: '', assigneeId: 0 }); const gridInspectors = ref<InspectorItem[]>([])
+interface StatRow { province?: string; city?: string; total?: number; so2超标?: number; co超标?: number; pm25超标?: number; aqi超标?: number; [key: string]: string | number | undefined }
+const provStats = ref<StatRow[]>([]); const drillProvince = ref(''); const cityDrillData = ref<StatRow[]>([])
+const detectStats = ref({ total: 0, good: 0, over: 0 })
+const coverStats = ref<CoverStats>({ coveredProvinces: 0, totalProvinces: 34, provinceRate: 0, coveredCities: 0, totalCities: 373, cityRate: 0, provinceList: [], cityList: [] })
 const distChart = ref<HTMLElement>(); const trendChart = ref<HTMLElement>(); const detectChart = ref<HTMLElement>(); const detectBarChart = ref<HTMLElement>()
 const selCovProv = ref('')
 
@@ -176,6 +192,12 @@ const covCityGrid = computed(() => (provinceCities[selCovProv.value] || []).map(
 // ECharts 实例管理，防止内存泄漏
 const chartInstances: echarts.ECharts[] = []
 function initChart(el: HTMLElement): echarts.ECharts {
+  const existing = echarts.getInstanceByDom(el)
+  if (existing) {
+    const idx = chartInstances.indexOf(existing)
+    if (idx > -1) chartInstances.splice(idx, 1)
+    existing.dispose()
+  }
   const instance = echarts.init(el)
   chartInstances.push(instance)
   return instance
@@ -188,41 +210,42 @@ onUnmounted(disposeCharts)
 
 const filteredList = computed(() => {
   let l = allList.value
-  if (search.value) l = l.filter((r: any) => (r.city || '').includes(search.value) || (r.province || '').includes(search.value))
-  if (filterStatus.value) l = l.filter((r: any) => r.status === filterStatus.value)
-  if (filterLevel.value) l = l.filter((r: any) => r.overallLevel === filterLevel.value)
+  if (search.value) l = l.filter((r) => (r.city || '').includes(search.value) || (r.province || '').includes(search.value))
+  if (filterStatus.value) l = l.filter((r) => r.status === filterStatus.value)
+  if (filterLevel.value) l = l.filter((r) => r.overallLevel === filterLevel.value)
   return l
 })
 const pagedList = computed(() => filteredList.value.slice((page.value - 1) * 10, page.value * 10))
-const confirmedList = computed(() => allList.value.filter((r: any) => r.measuredPm25 != null))
-const sortedInspectors = computed(() => [...gridInspectors.value].sort((a: any, b: any) => (a.city === assignForm.value.city ? -1 : 1) - (b.city === assignForm.value.city ? -1 : 1)))
+const confirmedList = computed(() => allList.value.filter((r) => r.measuredPm25 != null))
+const sortedInspectors = computed(() => [...gridInspectors.value].sort((a, b) => (a.city === assignForm.value.city ? -1 : 1) - (b.city === assignForm.value.city ? -1 : 1)))
 function filterList() { page.value = 1 }
 onMounted(() => { loadAll(); loadGridInspectors() })
-function loadAll() { get('/report/all').then((d) => { allList.value = (d.data as any[]) || [] }).catch(() => ElMessage.error('加载数据列表失败')) }
-function loadGridInspectors() { get('/user/list?role=AQI检测网格员').then((d) => { gridInspectors.value = (d.data as any[]) || [] }).catch(() => ElMessage.error('加载网格员列表失败')) }
+function loadAll() { get('/report/all').then((d) => { allList.value = (d.data as ReportItem[]) || [] }).catch(() => ElMessage.error('加载数据列表失败')) }
+function loadGridInspectors() { get('/user/list?role=AQI检测网格员').then((d) => { gridInspectors.value = (d.data as InspectorItem[]) || [] }).catch(() => ElMessage.error('加载网格员列表失败')) }
 
 function onMenuSelect(name: string) {
   menu.value = name
+  disposeCharts()
   if (name === 'province') loadProvStats()
   if (name === 'dist') renderDist()
   if (name === 'trend') renderTrend()
   if (name === 'detect') {
-    get('/stats/detection').then((d) => { detectStats.value = d.data as any || { total: 0, good: 0, over: 0 }; renderDetect() }).catch(() => ElMessage.error('加载统计数据失败'))
+    get('/stats/detection').then((d) => { detectStats.value = (d.data as { total: number; good: number; over: number }) || { total: 0, good: 0, over: 0 }; renderDetect() }).catch(() => ElMessage.error('加载统计数据失败'))
   }
-  if (name === 'cover') get('/stats/coverage').then((d) => { coverStats.value = d.data as any || coverStats.value }).catch(() => ElMessage.error('加载覆盖率数据失败'))
+  if (name === 'cover') get('/stats/coverage').then((d) => { coverStats.value = (d.data as CoverStats) || coverStats.value }).catch(() => ElMessage.error('加载覆盖率数据失败'))
 }
-function loadProvStats() { get('/stats/province').then((d) => { const pd = d.data || {}; provStats.value = Object.entries(pd).map(([k, v]: [string, any]) => ({ province: k, ...v })) }).catch(() => ElMessage.error('加载省统计失败')) }
-function drillDown(row:any){drillProvince.value=row.province;const m=new Map<string,any>();const rs=allList.value.filter((r:any)=>r.province===row.province);for(const r of rs){const c=r.city||'未知';if(!m.has(c))m.set(c,{city:c,total:0,so2超标:0,co超标:0,pm25超标:0,aqi超标:0});const d=m.get(c)!;d.total++;if(r.so2Level>=3)d.so2超标++;if(r.coLevel>=3)d.co超标++;if(r.pm25Level>=3)d.pm25超标++;if(r.overallLevel>=3)d.aqi超标++}cityDrillData.value=[...m.values()]}
+function loadProvStats() { get('/stats/province').then((d) => { const pd = (d.data || {}) as Record<string, Record<string, number>>; provStats.value = Object.entries(pd).map(([k, v]) => ({ province: k, ...v })) }).catch(() => ElMessage.error('加载省统计失败')) }
+function drillDown(row: StatRow) { drillProvince.value = row.province!; const m = new Map<string, StatRow>(); const rs = allList.value.filter((r) => r.province === row.province); for (const r of rs) { const c = r.city || '未知'; if (!m.has(c)) m.set(c, { city: c, total: 0, so2超标: 0, co超标: 0, pm25超标: 0, aqi超标: 0 }); const d = m.get(c)!; d.total = (d.total || 0) + 1; if (r.so2Level >= 3) d.so2超标 = (d.so2超标 || 0) + 1; if (r.coLevel >= 3) d.co超标 = (d.co超标 || 0) + 1; if (r.pm25Level >= 3) d.pm25超标 = (d.pm25超标 || 0) + 1; if (r.overallLevel >= 3) d.aqi超标 = (d.aqi超标 || 0) + 1 } cityDrillData.value = [...m.values()] }
 
-function renderDist() { nextTick(() => { if (!distChart.value) return; get('/stats/distribution').then((dd) => { const c = initChart(distChart.value!); c.setOption({ tooltip: { trigger: 'item' }, series: [{ type: 'pie', radius: ['40%', '70%'], data: Object.entries(dd.data || {}).map(([k, v]: [string, any]) => ({ name: k, value: v, itemStyle: { color: k === '优' ? '#4caf50' : k === '良' ? '#2196f3' : k.includes('轻度') ? '#ff9800' : k.includes('中度') ? '#f44336' : '#9c27b0' } })), label: { formatter: '{b}\n{d}%' } }] }) }).catch(() => ElMessage.error('加载AQI分布失败')) }) }
-function renderTrend() { nextTick(() => { if (!trendChart.value) return; get('/stats/trend').then((td) => { const c = initChart(trendChart.value!); c.setOption({ tooltip: { trigger: 'axis' }, xAxis: { type: 'category', data: Object.keys(td.data || {}) }, yAxis: { type: 'value' }, series: [{ data: Object.values(td.data || {}), type: 'line', smooth: true, areaStyle: { opacity: 0.3 }, itemStyle: { color: '#f44336' } }] }) }).catch(() => ElMessage.error('加载AQI趋势失败')) }) }
-function renderDetect() { nextTick(() => { if (detectChart.value) { const c = initChart(detectChart.value); c.setOption({ tooltip: { trigger: 'item' }, series: [{ type: 'pie', radius: ['50%', '75%'], data: [{ name: '良好', value: detectStats.value.good, itemStyle: { color: '#4caf50' } }, { name: '超标', value: detectStats.value.over, itemStyle: { color: '#f44336' } }], label: { formatter: '{b}:{c}\n({d}%)' } }] }) }; if (detectBarChart.value) { get('/stats/distribution').then((dd) => { const c = initChart(detectBarChart.value!); const data = dd.data || {}; c.setOption({ tooltip: { trigger: 'axis' }, xAxis: { type: 'category', data: Object.keys(data) }, yAxis: { type: 'value' }, series: [{ data: Object.values(data), type: 'bar', itemStyle: { color: (p: any) => ['#4caf50', '#2196f3', '#ff9800', '#f44336', '#9c27b0'][p.dataIndex] || '#999' } }] }) }).catch(() => ElMessage.error('加载分布数据失败')) } }) }
+function renderDist() { nextTick(() => { if (!distChart.value) return; get('/stats/distribution').then((dd) => { const data = (dd.data || {}) as Record<string, number>; const c = initChart(distChart.value!); c.setOption({ tooltip: { trigger: 'item' }, series: [{ type: 'pie', radius: ['40%', '70%'], data: Object.entries(data).map(([k, v]) => ({ name: k, value: v, itemStyle: { color: k === '优' ? '#4caf50' : k === '良' ? '#2196f3' : k.includes('轻度') ? '#ff9800' : k.includes('中度') ? '#f44336' : '#9c27b0' } })), label: { formatter: '{b}\n{d}%' } }] }) }).catch(() => ElMessage.error('加载AQI分布失败')) }) }
+function renderTrend() { nextTick(() => { if (!trendChart.value) return; get('/stats/trend').then((td) => { const data = (td.data || {}) as Record<string, number>; const c = initChart(trendChart.value!); c.setOption({ tooltip: { trigger: 'axis' }, xAxis: { type: 'category', data: Object.keys(data) }, yAxis: { type: 'value' }, series: [{ data: Object.values(data), type: 'line', smooth: true, areaStyle: { opacity: 0.3 }, itemStyle: { color: '#f44336' } }] }) }).catch(() => ElMessage.error('加载AQI趋势失败')) }) }
+function renderDetect() { nextTick(() => { if (detectChart.value) { const c = initChart(detectChart.value); c.setOption({ tooltip: { trigger: 'item' }, series: [{ type: 'pie', radius: ['50%', '75%'], data: [{ name: '良好', value: detectStats.value.good, itemStyle: { color: '#4caf50' } }, { name: '超标', value: detectStats.value.over, itemStyle: { color: '#f44336' } }], label: { formatter: '{b}:{c}\n({d}%)' } }] }) }; if (detectBarChart.value) { get('/stats/distribution').then((dd) => { const c = initChart(detectBarChart.value!); const data = (dd.data || {}) as Record<string, number>; c.setOption({ tooltip: { trigger: 'axis' }, xAxis: { type: 'category', data: Object.keys(data) }, yAxis: { type: 'value' }, series: [{ data: Object.values(data), type: 'bar', itemStyle: { color: (p: { dataIndex: number }) => ['#4caf50', '#2196f3', '#ff9800', '#f44336', '#9c27b0'][p.dataIndex] || '#999' } }] }) }).catch(() => ElMessage.error('加载分布数据失败')) } }) }
 
-function showDetail(row:any){detail.value=row;detailDlg.value=true}
-function openAssign(row:any){assignForm.value={id:row.id,city:row.city,assigneeId:0};assignDlg.value=true}
-function doAssign(){const g=gridInspectors.value.find((i:any)=>i.id===assignForm.value.assigneeId);post('/report/assign',{id:assignForm.value.id,assigneeId:assignForm.value.assigneeId,assigneeName:g?.name||''}).then((r:any)=>{if(r.code===200){ElMessage.success('指派成功');assignDlg.value=false;loadAll()}})}
+function showDetail(row: ReportItem) { detail.value = row; detailDlg.value = true }
+function openAssign(row: ReportItem) { assignForm.value = { id: row.id, city: row.city, assigneeId: 0 }; assignDlg.value = true }
+function doAssign() { const g = gridInspectors.value.find((i) => i.id === assignForm.value.assigneeId); post('/report/assign', { id: assignForm.value.id, assigneeId: assignForm.value.assigneeId, assigneeName: g?.name || '' }).then((r) => { if (r.code === 200) { ElMessage.success('指派成功'); assignDlg.value = false; loadAll() } }) }
 function del(id: number) { ElMessageBox.confirm('删除此记录？', '确认', { type: 'warning' }).then(() => get(`/report/delete?id=${id}`).then(() => loadAll()).catch(() => ElMessage.error('删除失败'))).catch(() => {}) }
-function cityCovCnt(province:string){const cities=provinceCities[province]||[];const covered=cities.filter((c:string)=>coverStats.value.cityList?.includes(c)).length;return covered+'/'+cities.length}
+function cityCovCnt(province: string) { const cities = provinceCities[province] || []; const covered = cities.filter((c) => coverStats.value.cityList?.includes(c)).length; return covered + '/' + cities.length }
 </script>
 
 <style scoped>
