@@ -1,6 +1,17 @@
 <template>
   <div class="inspector-page">
     <div class="top-banner"><el-button type="default" size="small" @click="router.push('/')" style="position:absolute;left:20px"><el-icon><ArrowLeft /></el-icon> 首页</el-button><el-icon :size="28"><Monitor /></el-icon><span>NEPG AQI检测网格员端</span><el-tag type="warning" size="small" style="margin-left:12px">{{ userStore.userRole }}</el-tag><el-button type="danger" size="small" @click="userStore.logout();router.push('/')" style="position:absolute;right:20px">退出</el-button></div>
+    <!-- 时间范围选择 -->
+    <div class="time-bar">
+      <span class="time-label">数据范围：</span>
+      <el-radio-group v-model="timeRange" @change="loadTasks" size="small">
+        <el-radio-button value="7d">近7天</el-radio-button>
+        <el-radio-button value="30d">近30天</el-radio-button>
+        <el-radio-button value="12m">近12个月</el-radio-button>
+        <el-radio-button value="all">全部</el-radio-button>
+      </el-radio-group>
+      <span class="time-range-text">{{ timeRangeText }}</span>
+    </div>
     <div class="main-container">
       <div class="page-header">
         <h2>🔬 检测任务</h2>
@@ -96,6 +107,22 @@ const form = reactive({ id: 0, city: '', supervisorOverall: 0, pm25Raw: 0, so2Ra
 
 const L = levelName
 const T = levelTagType
+const timeRange = ref('all')
+const timeParams = computed<Record<string, string> | undefined>(() => {
+  if (timeRange.value === 'all') return undefined
+  const now = new Date()
+  const end = now.toISOString().slice(0, 10)
+  const start = new Date()
+  if (timeRange.value === '7d') start.setDate(now.getDate() - 7)
+  else if (timeRange.value === '30d') start.setDate(now.getDate() - 30)
+  else if (timeRange.value === '12m') start.setFullYear(now.getFullYear() - 1)
+  return { startDate: start.toISOString().slice(0, 10), endDate: end }
+})
+const timeRangeText = computed(() => {
+  if (timeRange.value === 'all') return '全部历史数据'
+  const p = timeParams.value
+  return p ? `${p.startDate} ~ ${p.endDate}` : ''
+})
 
 /** 浓度→等级 */
 function rawToLevel(pollutant: string, raw: number): number {
@@ -110,7 +137,7 @@ const coLevel = computed(() => rawToLevel('co', form.coRaw))
 const measureOverall = computed(() => Math.max(pm25Level.value, so2Level.value, coLevel.value))
 
 function loadTasks() {
-  get(`/report/myTasks?assigneeId=${userStore.user?.id}`)
+  get(`/report/myTasks?assigneeId=${userStore.user?.id}`, timeParams.value)
     .then((d) => { tasks.value = (d.data as InspectorTask[]) || [] })
     .catch(() => ElMessage.error('加载任务列表失败'))
 }
@@ -145,6 +172,9 @@ function submit() {
 <style scoped>
 .inspector-page { min-height: 100vh; background: linear-gradient(160deg, #e8f5e9 0%, #e0f2f1 30%, #e0f7fa 60%, #e8eaf6 100%); }
 .top-banner { width: 100%; background: linear-gradient(135deg, #00695c 0%, #00796b 40%, #00897b 100%); color: #fff; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 14px 0; font-size: 18px; letter-spacing: 2px; }
+.time-bar{display:flex;align-items:center;justify-content:center;padding:6px 0;gap:8px;background:rgba(255,255,255,0.5)}
+.time-label{color:#00695c;font-size:13px;font-weight:500}
+.time-range-text{color:#999;font-size:11px;margin-left:8px}
 .main-container { padding: 20px 40px 40px; max-width: 1400px; margin: 0 auto; }
 .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
 .page-header h2 { margin: 0; color: #00695c; }

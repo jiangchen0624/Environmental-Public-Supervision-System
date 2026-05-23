@@ -1,6 +1,19 @@
 <template>
   <div class="admin-page">
     <div class="top-banner"><el-button type="default" size="small" @click="router.push('/')" style="position:absolute;left:20px"><el-icon><ArrowLeft /></el-icon> 首页</el-button><el-icon :size="28"><Monitor /></el-icon><span>NEPM 系统管理端</span><el-tag type="warning" size="small" style="margin-left:12px">{{ userStore.userRole }}</el-tag><el-button type="danger" size="small" @click="userStore.logout();router.push('/')" style="position:absolute;right:20px">退出</el-button></div>
+
+    <!-- 时间范围选择 -->
+    <div class="time-bar">
+      <span class="time-label">数据范围：</span>
+      <el-radio-group v-model="timeRange" @change="reloadCurrentView" size="small">
+        <el-radio-button value="7d">近7天</el-radio-button>
+        <el-radio-button value="30d">近30天</el-radio-button>
+        <el-radio-button value="12m">近12个月</el-radio-button>
+        <el-radio-button value="all">全部</el-radio-button>
+      </el-radio-group>
+      <span class="time-range-text">{{ timeRangeText }}</span>
+    </div>
+
     <div class="layout">
       <!-- 左侧菜单 -->
       <div class="sidebar">
@@ -28,6 +41,7 @@
             <el-input v-model="search" placeholder="搜索省市..." clearable style="width:180px" @input="filterList" />
             <el-select v-model="filterStatus" placeholder="状态" clearable style="width:120px" @change="filterList"><el-option v-for="s in statuses" :key="s" :label="s" :value="s" /></el-select>
             <el-select v-model="filterLevel" placeholder="AQI等级" clearable style="width:130px" @change="filterList"><el-option v-for="i in 5" :key="i" :label="i+'级 '+L(i)" :value="i" /></el-select>
+            <el-date-picker v-model="filterDateRange" type="daterange" range-separator="至" start-placeholder="开始日期" end-placeholder="结束日期" size="default" style="width:240px" @change="filterList" value-format="YYYY-MM-DD" />
             <el-button @click="loadAll" type="primary" size="small">刷新</el-button>
           </div>
           <el-table :data="pagedList" border stripe size="small" @row-click="showDetail" style="cursor:pointer" max-height="460">
@@ -169,6 +183,7 @@ interface InspectorItem { id: number; name: string; city: string; role: string }
 const router = useRouter(); const userStore = useUserStore()
 const menu = ref('list'); const search = ref(''); const filterStatus = ref(''); const filterLevel = ref<number | null>(null)
 const page = ref(1); const allList = ref<ReportItem[]>([]); const statuses = ['待指派', '已指派', '已检测']
+const filterDateRange = ref<[string, string] | null>(null)
 const detailDlg = ref(false); const detail = ref<ReportItem | null>(null)
 const assignDlg = ref(false); const assignForm = ref({ id: 0, city: '', assigneeId: 0 }); const gridInspectors = ref<InspectorItem[]>([])
 interface StatRow { province?: string; city?: string; total?: number; so2超标?: number; co超标?: number; pm25超标?: number; aqi超标?: number; [key: string]: string | number | undefined }
@@ -177,6 +192,22 @@ const detectStats = ref({ total: 0, good: 0, over: 0 })
 const coverStats = ref<CoverStats>({ coveredProvinces: 0, totalProvinces: 34, provinceRate: 0, coveredCities: 0, totalCities: 373, cityRate: 0, provinceList: [], cityList: [] })
 const distChart = ref<HTMLElement>(); const trendChart = ref<HTMLElement>(); const detectChart = ref<HTMLElement>(); const detectBarChart = ref<HTMLElement>()
 const selCovProv = ref('')
+const timeRange = ref('all')
+const timeParams = computed<Record<string, string> | undefined>(() => {
+  if (timeRange.value === 'all') return undefined
+  const now = new Date()
+  const end = now.toISOString().slice(0, 10)
+  const start = new Date()
+  if (timeRange.value === '7d') start.setDate(now.getDate() - 7)
+  else if (timeRange.value === '30d') start.setDate(now.getDate() - 30)
+  else if (timeRange.value === '12m') start.setFullYear(now.getFullYear() - 1)
+  return { startDate: start.toISOString().slice(0, 10), endDate: end }
+})
+const timeRangeText = computed(() => {
+  if (timeRange.value === 'all') return '全部历史数据'
+  const p = timeParams.value
+  return p ? `${p.startDate} ~ ${p.endDate}` : ''
+})
 
 const L = levelName
 const T = levelTagType
@@ -187,7 +218,9 @@ const provinceGrid = computed(() => {
   return list.sort((a, b) => (b.covered ? 1 : -1) - (a.covered ? 1 : -1))
 })
 const provinceCities = provinceCitiesMap
-const covCityGrid = computed(() => (provinceCities[selCovProv.value] || []).map((c: string) => ({ name: c, covered: coverStats.value.cityList?.includes(c) || false })))
+const covCityNorm = (n: string) => n.replace(/市$/, '').replace(/盟$/, '').replace(/地区$/, '')
+const coveredCitySet = computed(() => new Set((coverStats.value.cityList || []).map(covCityNorm)))
+const covCityGrid = computed(() => (provinceCities[selCovProv.value] || []).map((c: string) => ({ name: c, covered: coveredCitySet.value.has(covCityNorm(c)) || false })))
 
 // ECharts 实例管理，防止内存泄漏
 const chartInstances: echarts.ECharts[] = []
@@ -213,6 +246,10 @@ const filteredList = computed(() => {
   if (search.value) l = l.filter((r) => (r.city || '').includes(search.value) || (r.province || '').includes(search.value))
   if (filterStatus.value) l = l.filter((r) => r.status === filterStatus.value)
   if (filterLevel.value) l = l.filter((r) => r.overallLevel === filterLevel.value)
+  if (filterDateRange.value) {
+    const [start, end] = filterDateRange.value
+    l = l.filter((r) => r.createTime && r.createTime.slice(0, 10) >= start && r.createTime.slice(0, 10) <= end)
+  }
   return l
 })
 const pagedList = computed(() => filteredList.value.slice((page.value - 1) * 10, page.value * 10))
@@ -220,7 +257,7 @@ const confirmedList = computed(() => allList.value.filter((r) => r.measuredPm25 
 const sortedInspectors = computed(() => [...gridInspectors.value].sort((a, b) => (a.city === assignForm.value.city ? -1 : 1) - (b.city === assignForm.value.city ? -1 : 1)))
 function filterList() { page.value = 1 }
 onMounted(() => { loadAll(); loadGridInspectors() })
-function loadAll() { get('/report/all').then((d) => { allList.value = (d.data as ReportItem[]) || [] }).catch(() => ElMessage.error('加载数据列表失败')) }
+function loadAll() { get('/report/all', timeParams.value).then((d) => { allList.value = (d.data as ReportItem[]) || [] }).catch(() => ElMessage.error('加载数据列表失败')) }
 function loadGridInspectors() { get('/user/list?role=AQI检测网格员').then((d) => { gridInspectors.value = (d.data as InspectorItem[]) || [] }).catch(() => ElMessage.error('加载网格员列表失败')) }
 
 function onMenuSelect(name: string) {
@@ -230,22 +267,27 @@ function onMenuSelect(name: string) {
   if (name === 'dist') renderDist()
   if (name === 'trend') renderTrend()
   if (name === 'detect') {
-    get('/stats/detection').then((d) => { detectStats.value = (d.data as { total: number; good: number; over: number }) || { total: 0, good: 0, over: 0 }; renderDetect() }).catch(() => ElMessage.error('加载统计数据失败'))
+    get('/stats/detection', timeParams.value).then((d) => { detectStats.value = (d.data as { total: number; good: number; over: number }) || { total: 0, good: 0, over: 0 }; renderDetect() }).catch(() => ElMessage.error('加载统计数据失败'))
   }
-  if (name === 'cover') get('/stats/coverage').then((d) => { coverStats.value = (d.data as CoverStats) || coverStats.value }).catch(() => ElMessage.error('加载覆盖率数据失败'))
+  if (name === 'cover') get('/stats/coverage', timeParams.value).then((d) => { coverStats.value = (d.data as CoverStats) || coverStats.value }).catch(() => ElMessage.error('加载覆盖率数据失败'))
 }
-function loadProvStats() { get('/stats/province').then((d) => { const pd = (d.data || {}) as Record<string, Record<string, number>>; provStats.value = Object.entries(pd).map(([k, v]) => ({ province: k, ...v })) }).catch(() => ElMessage.error('加载省统计失败')) }
+function reloadCurrentView() {
+  if (menu.value === 'list' || menu.value === 'confirmed') { loadAll() }
+  else if (menu.value === 'province') { loadAll(); loadProvStats() }
+  else onMenuSelect(menu.value)
+}
+function loadProvStats() { get('/stats/province', timeParams.value).then((d) => { const pd = (d.data || {}) as Record<string, Record<string, number>>; provStats.value = Object.entries(pd).map(([k, v]) => ({ province: k, ...v })) }).catch(() => ElMessage.error('加载省统计失败')) }
 function drillDown(row: StatRow) { drillProvince.value = row.province!; const m = new Map<string, StatRow>(); const rs = allList.value.filter((r) => r.province === row.province); for (const r of rs) { const c = r.city || '未知'; if (!m.has(c)) m.set(c, { city: c, total: 0, so2超标: 0, co超标: 0, pm25超标: 0, aqi超标: 0 }); const d = m.get(c)!; d.total = (d.total || 0) + 1; if (r.so2Level >= 3) d.so2超标 = (d.so2超标 || 0) + 1; if (r.coLevel >= 3) d.co超标 = (d.co超标 || 0) + 1; if (r.pm25Level >= 3) d.pm25超标 = (d.pm25超标 || 0) + 1; if (r.overallLevel >= 3) d.aqi超标 = (d.aqi超标 || 0) + 1 } cityDrillData.value = [...m.values()] }
 
-function renderDist() { nextTick(() => { if (!distChart.value) return; get('/stats/distribution').then((dd) => { const data = (dd.data || {}) as Record<string, number>; const c = initChart(distChart.value!); c.setOption({ tooltip: { trigger: 'item' }, series: [{ type: 'pie', radius: ['40%', '70%'], data: Object.entries(data).map(([k, v]) => ({ name: k, value: v, itemStyle: { color: k === '优' ? '#4caf50' : k === '良' ? '#2196f3' : k.includes('轻度') ? '#ff9800' : k.includes('中度') ? '#f44336' : '#9c27b0' } })), label: { formatter: '{b}\n{d}%' } }] }) }).catch(() => ElMessage.error('加载AQI分布失败')) }) }
-function renderTrend() { nextTick(() => { if (!trendChart.value) return; get('/stats/trend').then((td) => { const data = (td.data || {}) as Record<string, number>; const c = initChart(trendChart.value!); c.setOption({ tooltip: { trigger: 'axis' }, xAxis: { type: 'category', data: Object.keys(data) }, yAxis: { type: 'value' }, series: [{ data: Object.values(data), type: 'line', smooth: true, areaStyle: { opacity: 0.3 }, itemStyle: { color: '#f44336' } }] }) }).catch(() => ElMessage.error('加载AQI趋势失败')) }) }
-function renderDetect() { nextTick(() => { if (detectChart.value) { const c = initChart(detectChart.value); c.setOption({ tooltip: { trigger: 'item' }, series: [{ type: 'pie', radius: ['50%', '75%'], data: [{ name: '良好', value: detectStats.value.good, itemStyle: { color: '#4caf50' } }, { name: '超标', value: detectStats.value.over, itemStyle: { color: '#f44336' } }], label: { formatter: '{b}:{c}\n({d}%)' } }] }) }; if (detectBarChart.value) { get('/stats/distribution').then((dd) => { const c = initChart(detectBarChart.value!); const data = (dd.data || {}) as Record<string, number>; c.setOption({ tooltip: { trigger: 'axis' }, xAxis: { type: 'category', data: Object.keys(data) }, yAxis: { type: 'value' }, series: [{ data: Object.values(data), type: 'bar', itemStyle: { color: (p: { dataIndex: number }) => ['#4caf50', '#2196f3', '#ff9800', '#f44336', '#9c27b0'][p.dataIndex] || '#999' } }] }) }).catch(() => ElMessage.error('加载分布数据失败')) } }) }
+function renderDist() { nextTick(() => { if (!distChart.value) return; get('/stats/distribution', timeParams.value).then((dd) => { const data = (dd.data || {}) as Record<string, number>; const c = initChart(distChart.value!); c.setOption({ tooltip: { trigger: 'item' }, series: [{ type: 'pie', radius: ['40%', '70%'], data: Object.entries(data).map(([k, v]) => ({ name: k, value: v, itemStyle: { color: k === '优' ? '#4caf50' : k === '良' ? '#2196f3' : k.includes('轻度') ? '#ff9800' : k.includes('中度') ? '#f44336' : '#9c27b0' } })), label: { formatter: '{b}\n{d}%' } }] }) }).catch(() => ElMessage.error('加载AQI分布失败')) }) }
+function renderTrend() { nextTick(() => { if (!trendChart.value) return; get('/stats/trend', timeParams.value).then((td) => { const data = (td.data || {}) as Record<string, number>; const c = initChart(trendChart.value!); c.setOption({ tooltip: { trigger: 'axis' }, xAxis: { type: 'category', data: Object.keys(data) }, yAxis: { type: 'value' }, series: [{ data: Object.values(data), type: 'line', smooth: true, areaStyle: { opacity: 0.3 }, itemStyle: { color: '#f44336' } }] }) }).catch(() => ElMessage.error('加载AQI趋势失败')) }) }
+function renderDetect() { nextTick(() => { if (detectChart.value) { const c = initChart(detectChart.value); c.setOption({ tooltip: { trigger: 'item' }, series: [{ type: 'pie', radius: ['50%', '75%'], data: [{ name: '良好', value: detectStats.value.good, itemStyle: { color: '#4caf50' } }, { name: '超标', value: detectStats.value.over, itemStyle: { color: '#f44336' } }], label: { formatter: '{b}:{c}\n({d}%)' } }] }) }; if (detectBarChart.value) { get('/stats/distribution', timeParams.value).then((dd) => { const c = initChart(detectBarChart.value!); const data = (dd.data || {}) as Record<string, number>; c.setOption({ tooltip: { trigger: 'axis' }, xAxis: { type: 'category', data: Object.keys(data) }, yAxis: { type: 'value' }, series: [{ data: Object.values(data), type: 'bar', itemStyle: { color: (p: { dataIndex: number }) => ['#4caf50', '#2196f3', '#ff9800', '#f44336', '#9c27b0'][p.dataIndex] || '#999' } }] }) }).catch(() => ElMessage.error('加载分布数据失败')) } }) }
 
 function showDetail(row: ReportItem) { detail.value = row; detailDlg.value = true }
 function openAssign(row: ReportItem) { assignForm.value = { id: row.id, city: row.city, assigneeId: 0 }; assignDlg.value = true }
 function doAssign() { const g = gridInspectors.value.find((i) => i.id === assignForm.value.assigneeId); post('/report/assign', { id: assignForm.value.id, assigneeId: assignForm.value.assigneeId, assigneeName: g?.name || '' }).then((r) => { if (r.code === 200) { ElMessage.success('指派成功'); assignDlg.value = false; loadAll() } }) }
 function del(id: number) { ElMessageBox.confirm('删除此记录？', '确认', { type: 'warning' }).then(() => get(`/report/delete?id=${id}`).then(() => loadAll()).catch(() => ElMessage.error('删除失败'))).catch(() => {}) }
-function cityCovCnt(province: string) { const cities = provinceCities[province] || []; const covered = cities.filter((c) => coverStats.value.cityList?.includes(c)).length; return covered + '/' + cities.length }
+function cityCovCnt(province: string) { const cities = provinceCities[province] || []; const covered = cities.filter((c) => coveredCitySet.value.has(covCityNorm(c))).length; return covered + '/' + cities.length }
 </script>
 
 <style scoped>
@@ -255,6 +297,9 @@ function cityCovCnt(province: string) { const cities = provinceCities[province] 
 .sidebar{width:220px;background:#fff;border-right:1px solid #e8e8e8;flex-shrink:0}
 .content{flex:1;padding:16px 20px;overflow:auto}
 .toolbar{display:flex;gap:10px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
+.time-bar{display:flex;align-items:center;justify-content:center;padding:6px 0;gap:8px;background:rgba(255,255,255,0.5)}
+.time-label{color:#e65100;font-size:13px;font-weight:500}
+.time-range-text{color:#999;font-size:11px;margin-left:8px}
 .big-stat{text-align:center;padding:30px 16px;border-radius:10px;color:#fff}.big-n{font-size:42px;font-weight:700}
 .big-stat.s-total{background:#607d8b}.big-stat.s-good{background:#4caf50}.big-stat.s-over{background:#f44336}
 .cover-rate{font-size:38px;font-weight:700;text-align:center;margin:8px 0}

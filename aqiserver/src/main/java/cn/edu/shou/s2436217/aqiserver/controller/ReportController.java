@@ -7,6 +7,7 @@ import cn.edu.shou.s2436217.aqiserver.service.ReportService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
+import java.time.LocalDateTime;
 import java.util.*;
 
 @Controller @RequestMapping("/report")
@@ -19,24 +20,44 @@ public class ReportController {
         reportService.submit(r); Map<String, Object> m = new HashMap<>(); m.put("code",200); m.put("msg","上报成功"); return m;
     }
     @CrossOrigin(origins = "*") @RequestMapping("/list") @ResponseBody
-    public Map<String, Object> list(@RequestParam int supervisorId) {
-        List<Report> l = reportService.listBySupervisor(supervisorId);
+    public Map<String, Object> list(
+            @RequestParam int supervisorId,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate) {
+        List<Report> l = filterByDate(startDate, endDate).stream()
+            .filter(r -> r.getSupervisorId() == supervisorId).collect(java.util.stream.Collectors.toList());
         List<Map<String, Object>> result = joinMeasurements(l);
         Map<String, Object> m = new HashMap<>(); m.put("code",200); m.put("data",result); return m;
     }
     @CrossOrigin(origins = "*") @RequestMapping("/all") @ResponseBody
-    public Map<String, Object> all() {
-        List<Report> l = reportService.listAll();
+    public Map<String, Object> all(
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate) {
+        List<Report> l = filterByDate(startDate, endDate);
         List<Map<String, Object>> result = joinMeasurements(l);
         Map<String, Object> m = new HashMap<>(); m.put("code",200); m.put("data",result); return m;
+    }
+
+    private List<Report> filterByDate(String startDate, String endDate) {
+        if (startDate != null && !startDate.isEmpty() && endDate != null && !endDate.isEmpty()) {
+            LocalDateTime start = LocalDateTime.parse(startDate + "T00:00:00");
+            LocalDateTime end = LocalDateTime.parse(endDate + "T23:59:59");
+            return reportService.listByDateRange(start, end);
+        }
+        return reportService.listAll();
     }
     @CrossOrigin(origins = "*") @RequestMapping("/byStatus") @ResponseBody
     public Map<String, Object> byStatus(@RequestParam String status) {
         List<Report> l = reportService.listByStatus(status); Map<String, Object> m = new HashMap<>(); m.put("code",200); m.put("data",l); return m;
     }
     @CrossOrigin(origins = "*") @RequestMapping("/myTasks") @ResponseBody
-    public Map<String, Object> myTasks(@RequestParam int assigneeId) {
-        List<Report> l = reportService.listByAssignee(assigneeId); Map<String, Object> m = new HashMap<>(); m.put("code",200); m.put("data",l); return m;
+    public Map<String, Object> myTasks(
+            @RequestParam int assigneeId,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate) {
+        List<Report> l = filterByDate(startDate, endDate).stream()
+            .filter(r -> r.getAssigneeId() == assigneeId).collect(java.util.stream.Collectors.toList());
+        Map<String, Object> m = new HashMap<>(); m.put("code",200); m.put("data",l); return m;
     }
     @CrossOrigin(origins = "*") @RequestMapping("/assign") @ResponseBody
     public Map<String, Object> assign(@RequestBody Map<String, Object> p) {

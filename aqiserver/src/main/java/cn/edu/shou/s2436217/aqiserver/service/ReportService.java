@@ -4,6 +4,7 @@ import cn.edu.shou.s2436217.aqiserver.bean.Report;
 import cn.edu.shou.s2436217.aqiserver.repostory.ReportRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -15,6 +16,7 @@ public class ReportService {
     public List<Report> listAll() { return reportRepository.findAllByOrderByCreateTimeDesc(); }
     public List<Report> listByStatus(String s) { return reportRepository.findByStatusOrderByCreateTimeDesc(s); }
     public List<Report> listByAssignee(int aid) { return reportRepository.findByAssigneeIdOrderByCreateTimeDesc(aid); }
+    public List<Report> listByDateRange(LocalDateTime start, LocalDateTime end) { return reportRepository.findByCreateTimeBetweenOrderByCreateTimeDesc(start, end); }
 
     public Report assign(int id, int assigneeId, String assigneeName) {
         Report r = reportRepository.findById(id).orElse(null);

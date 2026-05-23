@@ -22,8 +22,13 @@ export async function post(path: string, data: Record<string, unknown>): Promise
 /**
  * 发送 GET 请求
  */
-export async function get(path: string): Promise<ApiResult> {
-  const res = await fetch(`${BASE_URL}${path}`)
+export async function get(path: string, params?: Record<string, string>): Promise<ApiResult> {
+  let url = `${BASE_URL}${path}`
+  if (params) {
+    const qs = new URLSearchParams(params).toString()
+    if (qs) url += (path.includes('?') ? '&' : '?') + qs
+  }
+  const res = await fetch(url)
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   return res.json()
 }

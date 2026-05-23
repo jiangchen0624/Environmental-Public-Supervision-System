@@ -7,6 +7,18 @@
       <el-button type="danger" size="small" @click="userStore.logout();router.push('/')" style="position:absolute;right:20px">退出</el-button>
     </div>
 
+    <!-- 时间范围选择 -->
+    <div class="time-bar">
+      <span class="time-label">数据范围：</span>
+      <el-radio-group v-model="timeRange" @change="loadMyReports" size="small">
+        <el-radio-button value="7d">近7天</el-radio-button>
+        <el-radio-button value="30d">近30天</el-radio-button>
+        <el-radio-button value="12m">近12个月</el-radio-button>
+        <el-radio-button value="all">全部</el-radio-button>
+      </el-radio-group>
+      <span class="time-range-text">{{ timeRangeText }}</span>
+    </div>
+
     <div class="layout">
       <div class="sidebar">
         <el-menu :default-active="tab" @select="tab=$event">
@@ -284,9 +296,26 @@ const L = levelName
 const T = levelTagType
 const ST = statusTagType
 
+const timeRange = ref('all')
+const timeParams = computed<Record<string, string> | undefined>(() => {
+  if (timeRange.value === 'all') return undefined
+  const now = new Date()
+  const end = now.toISOString().slice(0, 10)
+  const start = new Date()
+  if (timeRange.value === '7d') start.setDate(now.getDate() - 7)
+  else if (timeRange.value === '30d') start.setDate(now.getDate() - 30)
+  else if (timeRange.value === '12m') start.setFullYear(now.getFullYear() - 1)
+  return { startDate: start.toISOString().slice(0, 10), endDate: end }
+})
+const timeRangeText = computed(() => {
+  if (timeRange.value === 'all') return '全部历史数据'
+  const p = timeParams.value
+  return p ? `${p.startDate} ~ ${p.endDate}` : ''
+})
+
 function loadMyReports() {
   if (userStore.user?.id)
-    get(`/report/list?supervisorId=${userStore.user.id}`)
+    get(`/report/list?supervisorId=${userStore.user.id}`, timeParams.value)
       .then((d) => { myReports.value = (d.data as ReportRow[]) || [] })
       .catch(() => ElMessage.error('加载上报记录失败'))
 }
@@ -361,6 +390,9 @@ function submitReport() {
 <style scoped>
 .report-page { height: 100vh; overflow: hidden; display: flex; flex-direction: column; background: linear-gradient(160deg, #e8f5e9 0%, #c8e6c9 20%, #e0f2e9 40%, #e3f2fd 70%, #e8eaf6 100%); }
 .top-banner { width: 100%; background: linear-gradient(135deg, #2e7d32 0%, #388e3c 40%, #43a047 100%); color: #fff; text-align: center; padding: 14px 0; font-size: 18px; font-weight: 500; letter-spacing: 2px; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 2px 12px rgba(46,125,50,0.3); flex-shrink: 0; }
+.time-bar{display:flex;align-items:center;justify-content:center;padding:6px 0;gap:8px;background:rgba(255,255,255,0.5);flex-shrink:0}
+.time-label{color:#2e7d32;font-size:13px;font-weight:500}
+.time-range-text{color:#999;font-size:11px;margin-left:8px}
 .main-container { padding: 20px 40px 40px; max-width: 1300px; margin: 0 auto; }
 
 .guide-text { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; font-size: 14px; color: #555; }
