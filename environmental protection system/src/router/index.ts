@@ -18,12 +18,56 @@ const router = createRouter({
     { path: '/', name: 'Home', component: Homeview },
     { path: '/regist', name: 'Regist', component: RegistView },
     { path: '/login', name: 'Login', component: Loginview },
-    { path: '/report', name: 'Report', component: ReportView },
-    { path: '/admin', name: 'Admin', component: AdminView },
-    { path: '/inspector', name: 'Inspector', component: InspectorView },
-    { path: '/decision', name: 'Decision', component: DecisionView },
-    { path: '/profile', name: 'Profile', component: ProfileView },
+    {
+      path: '/report',
+      name: 'Report',
+      component: ReportView,
+      meta: { requiresAuth: true, role: '公众监督员' },
+    },
+    {
+      path: '/admin',
+      name: 'Admin',
+      component: AdminView,
+      meta: { requiresAuth: true, roles: ['系统管理员', '决策者'] },
+    },
+    {
+      path: '/inspector',
+      name: 'Inspector',
+      component: InspectorView,
+      meta: { requiresAuth: true, role: 'AQI检测网格员' },
+    },
+    {
+      path: '/decision',
+      name: 'Decision',
+      component: DecisionView,
+      meta: { requiresAuth: true, role: '决策者' },
+    },
+    {
+      path: '/profile',
+      name: 'Profile',
+      component: ProfileView,
+      meta: { requiresAuth: true },
+    },
   ],
+})
+
+router.beforeEach((to, _from) => {
+  // 从 sessionStorage 读取登录态
+  const token = sessionStorage.getItem('token')
+  const userStr = sessionStorage.getItem('user')
+  const user = userStr ? JSON.parse(userStr) : null
+
+  if (to.meta.requiresAuth) {
+    if (!token || !user) {
+      return { name: 'Login', query: { redirect: to.fullPath } }
+    }
+    if (to.meta.roles && !to.meta.roles.includes(user.role)) {
+      return { name: 'Home' }
+    }
+    if (to.meta.role && user.role !== to.meta.role) {
+      return { name: 'Home' }
+    }
+  }
 })
 
 export default router

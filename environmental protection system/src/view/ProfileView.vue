@@ -38,15 +38,13 @@ import { UserFilled } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { post } from '@/util/request'
+import { areaData } from '@/util/area-data'
 
 const router = useRouter()
 const userStore = useUserStore()
 const saving = ref(false); const changing = ref(false)
 
-const area = [
-  { province: '上海', citys: ['上海市'] },{ province: '北京', citys: ['北京市'] },{ province: '天津', citys: ['天津市'] },{ province: '重庆', citys: ['重庆市'] },
-  { province: '广东', citys: ['广州市','深圳市','珠海市','东莞市','佛山市'] },{ province: '浙江', citys: ['杭州市','宁波市','温州市'] },{ province: '江苏', citys: ['南京市','苏州市','无锡市'] },
-]
+const area = areaData
 
 const profile = reactive({ name: userStore.user?.name||'', province: userStore.user?.province||'上海', city: userStore.user?.city||'上海市' })
 const profileCities = computed(() => area.find(a=>a.province===profile.province)?.citys||[])

@@ -81,7 +81,8 @@ import { ElMessage } from 'element-plus'
 import { Monitor, ArrowLeft } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import { post } from '@/util/request'
+import { post, get } from '@/util/request'
+import { levelName, levelTagType } from '@/util/helpers'
 
 const router = useRouter()
 
@@ -91,8 +92,8 @@ const dlg = ref(false)
 const submitting = ref(false)
 const form = reactive({ id: 0, city: '', supervisorOverall: 0, pm25Raw: 0, so2Raw: 0, coRaw: 0, notes: '' })
 
-const L = (lv: number) => ['', '优', '良', '轻度污染', '中度污染', '重度污染'][lv] || ''
-const T = (lv: number) => ({1:'success',2:'primary',3:'warning',4:'danger',5:'danger'} as any)[lv] || 'info'
+const L = levelName
+const T = levelTagType
 
 /** 浓度→等级 */
 function rawToLevel(pollutant: string, raw: number): number {
@@ -106,13 +107,19 @@ const so2Level = computed(() => rawToLevel('so2', form.so2Raw))
 const coLevel = computed(() => rawToLevel('co', form.coRaw))
 const measureOverall = computed(() => Math.max(pm25Level.value, so2Level.value, coLevel.value))
 
-onMounted(() => fetch(`/api/report/myTasks?assigneeId=${userStore.user?.id}`).then(r => r.json()).then(d => tasks.value = d.data || []))
+function loadTasks() {
+  get(`/report/myTasks?assigneeId=${userStore.user?.id}`)
+    .then((d) => { tasks.value = (d.data as any[]) || [] })
+    .catch(() => ElMessage.error('加载任务列表失败'))
+}
+onMounted(loadTasks)
 
 function open(row: any) {
   Object.assign(form, { id: row.id, city: row.city, supervisorOverall: row.overallLevel, pm25Raw: 0, so2Raw: 0, coRaw: 0, notes: '' })
   dlg.value = true
 }
 function submit() {
+  if (submitting.value) return
   submitting.value = true
   post('/measure/submit', {
     reportId: form.id,
@@ -122,7 +129,14 @@ function submit() {
     overallLevel: measureOverall.value,
     pm25Raw: form.pm25Raw, so2Raw: form.so2Raw, coRaw: form.coRaw,
     notes: form.notes,
-  }).then((r: any) => { submitting.value = false; if (r.code === 200) { ElMessage.success('检测报告已提交'); dlg.value = false; onMounted() } })
+  }).then((r) => {
+    submitting.value = false
+    if (r.code === 200) { ElMessage.success('检测报告已提交'); dlg.value = false; loadTasks() }
+    else ElMessage.error(r.msg)
+  }).catch(() => {
+    submitting.value = false
+    ElMessage.error('网络错误，请检查后端服务')
+  })
 }
 </script>
 

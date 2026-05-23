@@ -270,19 +270,23 @@ import { ElMessage } from 'element-plus'
 import { Monitor, Sunny, Plus, Right, Upload, Clock, ArrowLeft } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import { post } from '@/util/request'
+import { post, get } from '@/util/request'
+import { levelName, levelTagType, statusTagType } from '@/util/helpers'
 
 const router = useRouter()
 const userStore = useUserStore()
 const tab = ref('submit')
 
 const myReports = ref<any[]>([])
-const L = (lv: number) => ['', '优', '良', '轻度污染', '中度污染', '重度污染'][lv] || ''
-const T = (lv: number) => ({1:'success',2:'primary',3:'warning',4:'danger',5:'danger'} as any)[lv]||'info'
-const ST = (s: string) => ({'待指派':'danger','已指派':'warning','已检测':'success'} as any)[s]||'info'
+const L = levelName
+const T = levelTagType
+const ST = statusTagType
 
 function loadMyReports() {
-  if (userStore.user?.id) fetch(`/api/report/list?supervisorId=${userStore.user.id}`).then(r=>r.json()).then(d=>myReports.value=d.data||[])
+  if (userStore.user?.id)
+    get(`/report/list?supervisorId=${userStore.user.id}`)
+      .then((d) => { myReports.value = (d.data as any[]) || [] })
+      .catch(() => ElMessage.error('加载上报记录失败'))
 }
 onMounted(loadMyReports)
 
@@ -320,14 +324,8 @@ const overallLevel = computed(() =>
   Math.max(pm25Level.value, so2Level.value, coLevel.value)
 )
 
-const levelNames = ['', '优', '良', '轻度污染', '中度污染', '重度污染']
-function levelName(lv: number) { return levelNames[lv] || '' }
-function levelTagType(lv: number) {
-  const map: Record<number, string> = { 1: 'success', 2: 'primary', 3: 'warning', 4: 'danger', 5: 'danger' }
-  return map[lv] || 'info'
-}
-
 function submitReport() {
+  if (submitting.value) return
   if (!userStore.isLoggedIn) {
     ElMessage.warning('请先登录后再提交上报')
     router.push({ name: 'Login' })
@@ -360,8 +358,8 @@ function submitReport() {
 </script>
 
 <style scoped>
-.report-page { min-height: 100vh; background: linear-gradient(160deg, #e8f5e9 0%, #c8e6c9 20%, #e0f2e9 40%, #e3f2fd 70%, #e8eaf6 100%); }
-.top-banner { width: 100%; background: linear-gradient(135deg, #2e7d32 0%, #388e3c 40%, #43a047 100%); color: #fff; text-align: center; padding: 14px 0; font-size: 18px; font-weight: 500; letter-spacing: 2px; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 2px 12px rgba(46,125,50,0.3); }
+.report-page { height: 100vh; overflow: hidden; display: flex; flex-direction: column; background: linear-gradient(160deg, #e8f5e9 0%, #c8e6c9 20%, #e0f2e9 40%, #e3f2fd 70%, #e8eaf6 100%); }
+.top-banner { width: 100%; background: linear-gradient(135deg, #2e7d32 0%, #388e3c 40%, #43a047 100%); color: #fff; text-align: center; padding: 14px 0; font-size: 18px; font-weight: 500; letter-spacing: 2px; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 2px 12px rgba(46,125,50,0.3); flex-shrink: 0; }
 .main-container { padding: 20px 40px 40px; max-width: 1300px; margin: 0 auto; }
 
 .guide-card { }
@@ -407,7 +405,7 @@ function submitReport() {
 
 .result-actions { margin-top: 20px; display: flex; gap: 12px; justify-content: center; }
 
-.layout{display:flex;min-height:calc(100vh - 52px)}
+.layout{display:flex;flex:1;overflow:hidden}
 .sidebar{width:200px;background:#fff;border-right:1px solid #e8e8e8;flex-shrink:0}
 .content{flex:1;padding:16px 20px;overflow:auto}
 </style>

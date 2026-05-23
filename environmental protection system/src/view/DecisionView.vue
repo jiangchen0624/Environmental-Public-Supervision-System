@@ -40,7 +40,7 @@
           <el-card shadow="hover"><template #header><h3>🗺️ 全国网格覆盖率</h3></template>
             <div class="cover-panel">
               <div class="cover-item"><div class="cover-val">{{ coverStats.coveredProvinces }}<small>/{{ coverStats.totalProvinces }}</small></div><div class="cover-label">覆盖省份</div><el-progress :percentage="coverStats.provinceRate" :color="cColor(coverStats.provinceRate)" :stroke-width="14" /></div>
-              <div class="cover-item" style="margin-top:10px"><div class="cover-val">{{ coverStats.coveredCities }}<small>/{{ coverStats.totalCities }}</small></div><div class="cover-label">覆盖大城市 (全国106个)</div><el-progress :percentage="coverStats.cityRate" :color="cColor(coverStats.cityRate)" :stroke-width="14" /></div>
+              <div class="cover-item" style="margin-top:10px"><div class="cover-val">{{ coverStats.coveredCities }}<small>/{{ coverStats.totalCities }}</small></div><div class="cover-label">覆盖大城市 (全国{{ coverStats.totalCities }}个)</div><el-progress :percentage="coverStats.cityRate" :color="cColor(coverStats.cityRate)" :stroke-width="14" /></div>
               <div class="grid-legend-sm"><span class="dot-sm covered"/>已覆盖：{{ coverStats.coveredProvinces }} <span class="dot-sm"/>未覆盖：{{ coverStats.totalProvinces - coverStats.coveredProvinces }}</div>
               <div class="province-grid-sm">
                 <div v-for="p in provinceGrid" :key="p.name" class="pg-sm" :class="{covered:p.covered, active:selProvince===p.name}" @click="selProvince = selProvince===p.name ? '' : p.name" :title="(p.covered?'已覆盖 '+cityCoverCount(p.name)+' 市':'未覆盖')">{{ p.name }}<span v-if="p.covered" class="pg-cnt">{{ cityCoverCount(p.name) }}</span></div>
@@ -61,72 +61,85 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ElMessage } from 'element-plus'
 import { Monitor, ArrowLeft } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
+import { get } from '@/util/request'
+import { allProvinces, provinceCitiesMap } from '@/util/area-data'
 import * as echarts from 'echarts'
 
 const router = useRouter()
 
 const userStore = useUserStore()
-const detectStats = ref({ total:0, good:0, over:0 })
-const coverStats = ref({ coveredProvinces:0, totalProvinces:34, provinceRate:0, coveredCities:0, totalCities:106, cityRate:0, provinceList:[], cityList:[] })
+const detectStats = ref({ total: 0, good: 0, over: 0 })
+const coverStats = ref({ coveredProvinces: 0, totalProvinces: 34, provinceRate: 0, coveredCities: 0, totalCities: 373, cityRate: 0, provinceList: [], cityList: [] })
 const distChart = ref<HTMLElement>(); const trendChart = ref<HTMLElement>(); const detectPieChart = ref<HTMLElement>()
-const cColor = (r:number) => r<30?'#f44336':r<60?'#ff9800':r<80?'#2196f3':'#4caf50'
-const allProvinces = ['北京','天津','上海','重庆','河北','山西','内蒙古','辽宁','吉林','黑龙江','江苏','浙江','安徽','福建','江西','山东','河南','湖北','湖南','广东','广西','海南','四川','贵州','云南','西藏','陕西','甘肃','青海','宁夏','新疆','香港','澳门','台湾']
+const cColor = (r: number) => r < 30 ? '#f44336' : r < 60 ? '#ff9800' : r < 80 ? '#2196f3' : '#4caf50'
 const provinceGrid = computed(() => {
   const list = allProvinces.map(p => ({ name: p, covered: coverStats.value.provinceList?.includes(p) || false }))
-  return list.sort((a,b) => (b.covered ? 1 : -1) - (a.covered ? 1 : -1))
+  return list.sort((a, b) => (b.covered ? 1 : -1) - (a.covered ? 1 : -1))
 })
 const provTable = ref<any[]>([])
 const selProvince = ref('')
 
-const provinceCities: Record<string, string[]> = {
-  '北京':['北京市'],'天津':['天津市'],'上海':['上海市'],'重庆':['重庆市'],'河北':['石家庄市','唐山市','保定市','邯郸市','廊坊市','沧州市','邢台市','衡水市'],'山西':['太原市','大同市','长治市','晋中市','临汾市','运城市'],'内蒙古':['呼和浩特市','包头市','鄂尔多斯市','赤峰市','呼伦贝尔市'],'辽宁':['沈阳市','大连市','鞍山市','抚顺市','锦州市','营口市','丹东市'],'吉林':['长春市','吉林市','延边州','四平市','通化市'],'黑龙江':['哈尔滨市','齐齐哈尔市','大庆市','牡丹江市','佳木斯市'],'江苏':['南京市','苏州市','无锡市','常州市','南通市','徐州市','扬州市','镇江市','泰州市'],'浙江':['杭州市','宁波市','温州市','嘉兴市','湖州市','绍兴市','金华市','台州市'],'安徽':['合肥市','芜湖市','蚌埠市','安庆市','马鞍山市','滁州市','阜阳市'],'福建':['福州市','厦门市','泉州市','漳州市','莆田市','龙岩市','三明市'],'江西':['南昌市','九江市','赣州市','景德镇市','上饶市','宜春市'],'山东':['济南市','青岛市','烟台市','潍坊市','临沂市','淄博市','济宁市','泰安市','威海市'],'河南':['郑州市','洛阳市','开封市','南阳市','新乡市','安阳市','信阳市'],'湖北':['武汉市','宜昌市','襄阳市','荆州市','黄冈市','十堰市','孝感市'],'湖南':['长沙市','株洲市','湘潭市','衡阳市','岳阳市','常德市','郴州市'],'广东':['广州市','深圳市','珠海市','东莞市','佛山市','惠州市','中山市','茂名市','汕头市','湛江市'],'广西':['南宁市','柳州市','桂林市','北海市','玉林市','梧州市'],'海南':['海口市','三亚市','儋州市','三沙市'],'四川':['成都市','绵阳市','德阳市','宜宾市','南充市','泸州市','乐山市'],'贵州':['贵阳市','遵义市','毕节市','六盘水市','安顺市'],'云南':['昆明市','曲靖市','大理州','丽江市','玉溪市'],'西藏':['拉萨市','日喀则市','昌都市','林芝市'],'陕西':['西安市','咸阳市','宝鸡市','渭南市','延安市','汉中市'],'甘肃':['兰州市','天水市','酒泉市','庆阳市','张掖市'],'青海':['西宁市','海东市','格尔木市','玉树州'],'宁夏':['银川市','石嘴山市','吴忠市','固原市'],'新疆':['乌鲁木齐市','克拉玛依市','吐鲁番市','哈密市','喀什地区'],'香港':['香港岛','九龙','新界'],'澳门':['澳门半岛','氹仔','路环'],'台湾':['台北市','高雄市','台中市','台南市','新北市'],
+const provinceCities = provinceCitiesMap
+const selCityGrid = computed(() => (provinceCities[selProvince.value] || []).map(c => ({ name: c, covered: coverStats.value.cityList?.includes(c) || false })))
+
+// ECharts 实例管理
+const chartInstances: echarts.ECharts[] = []
+function initChart(el: HTMLElement): echarts.ECharts {
+  const instance = echarts.init(el)
+  chartInstances.push(instance)
+  return instance
 }
-const selCityGrid = computed(() => (provinceCities[selProvince.value]||[]).map(c => ({ name:c, covered:coverStats.value.cityList?.includes(c)||false })))
+onUnmounted(() => chartInstances.forEach((c) => c.dispose()))
 
 onMounted(async () => {
-  const [prov, dist, trend, detect, cover] = await Promise.all([
-    fetch('/api/stats/province').then(r=>r.json()),
-    fetch('/api/stats/distribution').then(r=>r.json()),
-    fetch('/api/stats/trend').then(r=>r.json()),
-    fetch('/api/stats/detection').then(r=>r.json()),
-    fetch('/api/stats/coverage').then(r=>r.json()),
-  ])
-  detectStats.value = detect.data || { total:0, good:0, over:0 }
-  coverStats.value = cover.data || coverStats.value
+  try {
+    const [prov, dist, trend, detect, cover] = await Promise.all([
+      get('/stats/province'),
+      get('/stats/distribution'),
+      get('/stats/trend'),
+      get('/stats/detection'),
+      get('/stats/coverage'),
+    ])
+    detectStats.value = (detect.data as any) || { total: 0, good: 0, over: 0 }
+    coverStats.value = (cover.data as any) || coverStats.value
 
-  // 省分组表格
-  const pd = prov.data || {}
-  provTable.value = Object.entries(pd).map(([k,v]:[string,any]) => {
-    const max = Math.max(v['so2超标'],v['co超标'],v['pm25超标'],v['aqi超标'],1)
-    return { province:k, ...v, maxPct:Math.round(max/Math.max(v['aqi超标']||1,1)*100) }
-  })
+    // 省分组表格
+    const pd = prov.data || {}
+    provTable.value = Object.entries(pd).map(([k, v]: [string, any]) => {
+      const total = Math.max(v['aqi超标'] || 1, 1)
+      return { province: k, ...v, maxPct: Math.round(Math.max(v['so2超标'], v['co超标'], v['pm25超标']) / total * 100) }
+    })
 
-  await nextTick()
-  // AQI分布
-  const dd = dist.data || {}
-  const c2 = echarts.init(distChart.value!)
-  c2.setOption({ tooltip:{trigger:'item'}, series:[{type:'pie',radius:['45%','75%'],center:['50%','50%'],data:Object.entries(dd).map(([k,v])=>({name:k,value:v,itemStyle:{color:k==='优'?'#4caf50':k==='良'?'#2196f3':k.includes('轻度')?'#ff9800':k.includes('中度')?'#f44336':'#9c27b0'}})),label:{formatter:'{b}\n{d}%'}}] })
+    await nextTick()
+    // AQI分布
+    const dd = dist.data || {}
+    const c2 = initChart(distChart.value!)
+    c2.setOption({ tooltip: { trigger: 'item' }, series: [{ type: 'pie', radius: ['45%', '75%'], center: ['50%', '50%'], data: Object.entries(dd).map(([k, v]) => ({ name: k, value: v, itemStyle: { color: k === '优' ? '#4caf50' : k === '良' ? '#2196f3' : k.includes('轻度') ? '#ff9800' : k.includes('中度') ? '#f44336' : '#9c27b0' } })), label: { formatter: '{b}\n{d}%' } }] })
 
-  // 趋势
-  const td = trend.data || {}
-  const c3 = echarts.init(trendChart.value!)
-  c3.setOption({ tooltip:{trigger:'axis'}, grid:{left:40,right:20,bottom:30,top:10}, xAxis:{type:'category',data:Object.keys(td)}, yAxis:{type:'value'}, series:[{data:Object.values(td),type:'line',smooth:true,areaStyle:{opacity:0.35},itemStyle:{color:'#f44336'},lineStyle:{width:3}}] })
+    // 趋势
+    const td = trend.data || {}
+    const c3 = initChart(trendChart.value!)
+    c3.setOption({ tooltip: { trigger: 'axis' }, grid: { left: 40, right: 20, bottom: 30, top: 10 }, xAxis: { type: 'category', data: Object.keys(td) }, yAxis: { type: 'value' }, series: [{ data: Object.values(td), type: 'line', smooth: true, areaStyle: { opacity: 0.35 }, itemStyle: { color: '#f44336' }, lineStyle: { width: 3 } }] })
 
-  // 迷你饼图
-  if (detectPieChart.value) {
-    const c4 = echarts.init(detectPieChart.value)
-    c4.setOption({ series:[{type:'pie',radius:['55%','80%'],center:['50%','50%'],data:[{name:'良好',value:detectStats.value.good,itemStyle:{color:'#4caf50'}},{name:'超标',value:detectStats.value.over,itemStyle:{color:'#f44336'}}],label:{show:false}}]})
+    // 迷你饼图
+    if (detectPieChart.value) {
+      const c4 = initChart(detectPieChart.value)
+      c4.setOption({ series: [{ type: 'pie', radius: ['55%', '80%'], center: ['50%', '50%'], data: [{ name: '良好', value: detectStats.value.good, itemStyle: { color: '#4caf50' } }, { name: '超标', value: detectStats.value.over, itemStyle: { color: '#f44336' } }], label: { show: false } }] })
+    }
+  } catch {
+    ElMessage.error('加载可视化数据失败，请检查后端服务')
   }
 })
 
 function cityCoverCount(province: string) {
   const cities = provinceCities[province] || []
   const covered = cities.filter(c => coverStats.value.cityList?.includes(c)).length
-  return covered + "/" + cities.length
+  return covered + '/' + cities.length
 }
 </script>
 

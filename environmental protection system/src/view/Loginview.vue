@@ -93,6 +93,7 @@ const loginRole = ref('公众监督员')
 const loading = ref(false)
 
 const login = () => {
+  if (loading.value) return
   if (!phone.value) {
     ElMessage.error('请输入手机号')
     return
@@ -114,7 +115,8 @@ const login = () => {
         // 类型断言以避免 result.data 为 unknown 导致的类型错误
         userStore.setUser(result.data as any)
         ElMessage.success(`登录成功！身份：${loginRole.value} —— ${(result.data as any)?.name || ''}`)
-        router.push('/')
+        const redirect = router.currentRoute.value.query.redirect as string
+        router.push(redirect || '/')
       } else {
         ElMessage.error(result.msg)
       }

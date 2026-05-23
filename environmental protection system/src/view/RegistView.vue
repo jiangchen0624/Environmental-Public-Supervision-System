@@ -23,7 +23,7 @@
         <el-form label-position="top" @submit.prevent="register">
           <el-form-item label="手机号">
             <el-input
-              v-model="loginName"
+              v-model="phone"
               placeholder="请输入手机号"
               maxlength="11"
               :prefix-icon="Phone"
@@ -127,54 +127,20 @@ import { useRouter } from 'vue-router'
 // 导入工具函数：表单校验、请求封装
 import { validatePhone, validateName, validatePassword, validateConfirmPassword } from '@/util/validate'
 import { post } from '@/util/request'
+import { areaData } from '@/util/area-data'
 
 // 初始化路由实例
 const router = useRouter()
 
 // 表单数据响应式变量
-const loginName = ref('')           // 手机号
+const phone = ref('')           // 手机号
 const name = ref('')                // 姓名
 const password = ref('')            // 密码
 const confirmPassword = ref('')     // 确认密码
 const loading = ref(false)          // 加载状态
 
-// 省市区数据（模拟数据）
-const area = [
-  { province: '上海', citys: ['上海市'] },
-  { province: '北京', citys: ['北京市'] },
-  { province: '天津', citys: ['天津市'] },
-  { province: '重庆', citys: ['重庆市'] },
-  { province: '河北', citys: ['石家庄市', '唐山市', '保定市', '邯郸市', '廊坊市', '沧州市', '邢台市', '衡水市'] },
-  { province: '山西', citys: ['太原市', '大同市', '长治市', '晋中市', '临汾市', '运城市'] },
-  { province: '内蒙古', citys: ['呼和浩特市', '包头市', '鄂尔多斯市', '赤峰市', '呼伦贝尔市'] },
-  { province: '辽宁', citys: ['沈阳市', '大连市', '鞍山市', '抚顺市', '锦州市', '营口市', '丹东市'] },
-  { province: '吉林', citys: ['长春市', '吉林市', '延边州', '四平市', '通化市'] },
-  { province: '黑龙江', citys: ['哈尔滨市', '齐齐哈尔市', '大庆市', '牡丹江市', '佳木斯市'] },
-  { province: '江苏', citys: ['南京市', '苏州市', '无锡市', '常州市', '南通市', '徐州市', '扬州市', '镇江市', '泰州市'] },
-  { province: '浙江', citys: ['杭州市', '宁波市', '温州市', '嘉兴市', '湖州市', '绍兴市', '金华市', '台州市'] },
-  { province: '安徽', citys: ['合肥市', '芜湖市', '蚌埠市', '安庆市', '马鞍山市', '滁州市', '阜阳市'] },
-  { province: '福建', citys: ['福州市', '厦门市', '泉州市', '漳州市', '莆田市', '龙岩市', '三明市'] },
-  { province: '江西', citys: ['南昌市', '九江市', '赣州市', '景德镇市', '上饶市', '宜春市'] },
-  { province: '山东', citys: ['济南市', '青岛市', '烟台市', '潍坊市', '临沂市', '淄博市', '济宁市', '泰安市', '威海市'] },
-  { province: '河南', citys: ['郑州市', '洛阳市', '开封市', '南阳市', '新乡市', '安阳市', '信阳市'] },
-  { province: '湖北', citys: ['武汉市', '宜昌市', '襄阳市', '荆州市', '黄冈市', '十堰市', '孝感市'] },
-  { province: '湖南', citys: ['长沙市', '株洲市', '湘潭市', '衡阳市', '岳阳市', '常德市', '郴州市'] },
-  { province: '广东', citys: ['广州市', '深圳市', '珠海市', '东莞市', '佛山市', '惠州市', '中山市', '茂名市', '汕头市', '湛江市'] },
-  { province: '广西', citys: ['南宁市', '柳州市', '桂林市', '北海市', '玉林市', '梧州市'] },
-  { province: '海南', citys: ['海口市', '三亚市', '儋州市', '三沙市'] },
-  { province: '四川', citys: ['成都市', '绵阳市', '德阳市', '宜宾市', '南充市', '泸州市', '乐山市'] },
-  { province: '贵州', citys: ['贵阳市', '遵义市', '毕节市', '六盘水市', '安顺市'] },
-  { province: '云南', citys: ['昆明市', '曲靖市', '大理州', '丽江市', '玉溪市'] },
-  { province: '西藏', citys: ['拉萨市', '日喀则市', '昌都市', '林芝市'] },
-  { province: '陕西', citys: ['西安市', '咸阳市', '宝鸡市', '渭南市', '延安市', '汉中市'] },
-  { province: '甘肃', citys: ['兰州市', '天水市', '酒泉市', '庆阳市', '张掖市'] },
-  { province: '青海', citys: ['西宁市', '海东市', '格尔木市', '玉树州'] },
-  { province: '宁夏', citys: ['银川市', '石嘴山市', '吴忠市', '固原市'] },
-  { province: '新疆', citys: ['乌鲁木齐市', '克拉玛依市', '吐鲁番市', '哈密市', '喀什地区'] },
-  { province: '香港', citys: ['香港岛', '九龙', '新界'] },
-  { province: '澳门', citys: ['澳门半岛', '氹仔', '路环'] },
-  { province: '台湾', citys: ['台北市', '高雄市', '台中市', '台南市', '新北市'] },
-]
+// 省市区数据（导入共享模块）
+const area = areaData
 
 // 省份选择（默认选中第一个）
 const province = ref(area[0]!.province)
@@ -200,8 +166,9 @@ watch(province, (newVal) => {
  * 调用 util/validate 进行前端校验，通过后调用 util/request 发送请求到后端
  */
 const register = () => {
+  if (loading.value) return
   // 前端表单校验
-  const msg = validatePhone(loginName.value)
+  const msg = validatePhone(phone.value)
     || validateName(name.value)
     || validatePassword(password.value)
     || validateConfirmPassword(password.value, confirmPassword.value)
@@ -215,7 +182,7 @@ const register = () => {
 
   // 构造注册数据并发送 POST 请求（Vite 代理 /api -> localhost:8080）
   post('/user/register', {
-    phone: loginName.value,
+    phone: phone.value,
     name: name.value,
     password: password.value,
     province: province.value,

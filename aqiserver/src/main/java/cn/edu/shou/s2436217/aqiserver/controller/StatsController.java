@@ -97,8 +97,8 @@ public class StatsController {
         List<Report> all = reportService.listAll();
         Set<String> provinces = all.stream().map(r -> r.getProvince()).filter(Objects::nonNull).collect(Collectors.toSet());
         Set<String> cities = all.stream().map(r -> r.getCity()).filter(Objects::nonNull).collect(Collectors.toSet());
-        int totalProvinces = 34; // China has 34 provincial regions
-        int totalCities = 106;   // per requirements doc
+        int totalProvinces = 34; // 34个省级行政区
+        int totalCities = 373;    // 全部地级市/自治州/省直辖县级市
         Map<String, Object> resp = new HashMap<>(); resp.put("code",200);
         resp.put("data", Map.of(
             "coveredProvinces", provinces.size(), "totalProvinces", totalProvinces,
