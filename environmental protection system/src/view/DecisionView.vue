@@ -28,15 +28,15 @@
       <!-- Row 2: 省分组统计(表格+高亮) + AQI分布 -->
       <el-row :gutter="12" class="row">
         <el-col :span="14">
-          <el-card shadow="hover"><template #header><h3>📊 各省空气质量统计（等级≥3为超标）</h3></template>
+          <el-card shadow="hover"><template #header><h3>📊 各省空气质量统计（等级1-2合格，3-5超标）</h3></template>
             <el-table :data="provTable" border stripe size="small" max-height="380" style="font-size:12px">
-              <el-table-column prop="province" label="省" width="65" fixed />
-              <el-table-column label="检测数" width="55" prop="total" />
-              <el-table-column label="SO₂超标" width="68"><template #default="{row}"><span :class="{over:row.so2超标}">{{ row.so2超标 }}</span></template></el-table-column>
-              <el-table-column label="CO超标" width="65"><template #default="{row}"><span :class="{over:row.co超标}">{{ row.co超标 }}</span></template></el-table-column>
-              <el-table-column label="PM2.5超标" width="75"><template #default="{row}"><span :class="{over:row.pm25超标}">{{ row.pm25超标 }}</span></template></el-table-column>
-              <el-table-column label="AQI超标" width="65"><template #default="{row}"><span :class="{over:row.aqi超标}">{{ row.aqi超标 }}</span></template></el-table-column>
-              <el-table-column label="超标率" min-width="130"><template #default="{row}"><div class="rate-cell"><span class="rate-num" :style="{color:row.maxPct>50?'#f44336':row.maxPct>20?'#ff9800':'#4caf50'}">{{ row.maxPct }}%</span><div class="mini-bar"><div class="mini-bar-fill" :style="{width:row.maxPct+'%',background:row.maxPct>50?'#f44336':row.maxPct>20?'#ff9800':'#4caf50'}"></div></div></div></template></el-table-column>
+              <el-table-column prop="province" label="省" width="60" fixed />
+              <el-table-column label="检测数" width="52" prop="total" />
+              <el-table-column label="SO₂超标" width="74"><template #default="{row}"><span :class="{over:row.so2超标}">{{ row.so2超标 }}</span><span class="sub-pct">{{ row.so2Pct }}%</span></template></el-table-column>
+              <el-table-column label="CO超标" width="70"><template #default="{row}"><span :class="{over:row.co超标}">{{ row.co超标 }}</span><span class="sub-pct">{{ row.coPct }}%</span></template></el-table-column>
+              <el-table-column label="PM2.5超标" width="80"><template #default="{row}"><span :class="{over:row.pm25超标}">{{ row.pm25超标 }}</span><span class="sub-pct">{{ row.pm25Pct }}%</span></template></el-table-column>
+              <el-table-column label="AQI不合格" width="78"><template #default="{row}"><span :class="{over:row.aqi超标}">{{ row.aqi超标 }}</span><span class="sub-pct">{{ row.maxPct }}%</span></template></el-table-column>
+              <el-table-column label="不合格率" min-width="130"><template #default="{row}"><div class="rate-cell"><span class="rate-num" :style="{color:row.maxPct>50?'#f44336':row.maxPct>20?'#ff9800':'#4caf50'}">{{ row.maxPct }}%</span><div class="mini-bar"><div class="mini-bar-fill" :style="{width:Math.min(row.maxPct,100)+'%',background:row.maxPct>50?'#f44336':row.maxPct>20?'#ff9800':'#4caf50'}"></div></div></div></template></el-table-column>
             </el-table>
           </el-card>
         </el-col>
@@ -118,7 +118,10 @@ interface CoverageStats {
   provinceList: string[]; cityList: string[]
 }
 interface ProvinceTableRow {
-  province: string; total: number; so2超标: number; co超标: number; pm25超标: number
+  province: string; total: number
+  so2超标: number; so2Pct: number
+  co超标: number; coPct: number
+  pm25超标: number; pm25Pct: number
   aqi超标: number; maxPct: number
 }
 interface CityGridItem { name: string; covered: boolean }
@@ -257,7 +260,7 @@ function renderDistChart(data: Record<string, number>) {
         name: k, value: v,
         itemStyle: { color: k === '优' ? '#4caf50' : k === '良' ? '#2196f3' : k.includes('轻度') ? '#ff9800' : k.includes('中度') ? '#f44336' : '#9c27b0' },
       })),
-      label: { formatter: '{b}\n{d}%', fontSize: 11 },
+      label: { formatter: '{b}: {c}条\n({d}%)', fontSize: 10 },
     }],
   })
 }
@@ -354,7 +357,9 @@ async function renderMap() {
             const so2 = cd?.['so2超标'] ?? 0
             const co = cd?.['co超标'] ?? 0
             const pm25 = cd?.['pm25超标'] ?? 0
-            return `${params.name}<br/>AQI超标: ${aqi} | SO₂超标: ${so2} | CO超标: ${co} | PM2.5超标: ${pm25}`
+            const total = cd?.['total'] ?? 0
+            const rate = total > 0 ? Math.round(aqi / total * 100) : 0
+            return `<b>${params.name}</b><br/>检测总数: ${total} | AQI不合格: ${aqi}条 (${rate}%)<br/>SO₂超标: ${so2}条 | CO超标: ${co}条 | PM₂.₅超标: ${pm25}条`
           }
         },
         series: [{
@@ -390,7 +395,9 @@ async function renderMap() {
             const pm25 = cd?.['pm25超标'] ?? 0
             const feat = geo.features.find((f: GeoFeature) => f.properties.name === params.name)
             const provName = feat ? ADCODE_PROVINCE_MAP[feat.properties.provinceAdcode] || '' : ''
-            return `${params.name}<br/>所属: ${provName}<br/>AQI超标: ${aqi} | SO₂超标: ${so2} | CO超标: ${co} | PM2.5超标: ${pm25}`
+            const total = cd?.['total'] ?? 0
+            const rate = total > 0 ? Math.round(aqi / total * 100) : 0
+            return `<b>${params.name}</b> (${provName})<br/>检测总数: ${total} | AQI不合格: ${aqi}条 (${rate}%)<br/>SO₂超标: ${so2}条 | CO超标: ${co}条 | PM₂.₅超标: ${pm25}条`
           }
         },
         series: [{
@@ -446,14 +453,13 @@ async function fetchAndRenderAll() {
       const so2 = v['so2超标'] ?? 0
       const co = v['co超标'] ?? 0
       const pm25 = v['pm25超标'] ?? 0
+      const base = Math.max(total, 1)
       return {
-        province: k,
-        total,
-        so2超标: so2,
-        co超标: co,
-        pm25超标: pm25,
-        aqi超标: aqi,
-        maxPct: Math.round(Math.max(so2, co, pm25, aqi) / Math.max(total, 1) * 100),
+        province: k, total,
+        so2超标: so2, so2Pct: Math.round(so2 / base * 100),
+        co超标: co, coPct: Math.round(co / base * 100),
+        pm25超标: pm25, pm25Pct: Math.round(pm25 / base * 100),
+        aqi超标: aqi, maxPct: Math.round(aqi / base * 100),
       }
     })
 
@@ -535,6 +541,7 @@ h3{margin:0;font-size:14px;color:#90caf9}
 .cg-sm.covered{background:#66bb6a;color:#fff;font-weight:500}
 
 .over{color:#f44336;font-weight:700}
+.sub-pct{font-size:9px;color:#546e7a;margin-left:2px}
 .rate-cell{display:flex;align-items:center;gap:4px}
 .rate-num{font-size:11px;font-weight:600;min-width:32px;display:inline-block;text-align:right}
 .mini-bar{height:10px;background:#263238;border-radius:5px;overflow:hidden;flex:1;min-width:40px}
@@ -542,7 +549,7 @@ h3{margin:0;font-size:14px;color:#90caf9}
 
 /* 地图区块 */
 .map-header{display:flex;align-items:center;justify-content:space-between}
-.map-container{width:100%;height:620px}
+.map-container{width:100%;height:750px}
 .map-legend{display:flex;align-items:center;justify-content:center;gap:12px;padding:8px 0 4px;flex-wrap:wrap}
 .legend-label{color:#90caf9;font-size:11px}
 .legend-item{display:flex;align-items:center;gap:3px;color:#78909c;font-size:10px}
