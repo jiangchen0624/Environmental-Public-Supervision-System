@@ -97,7 +97,7 @@ import { levelName, levelTagType } from '@/util/helpers'
 
 const router = useRouter()
 
-interface InspectorTask { id: number; province: string; city: string; pm25Level: number; so2Level: number; coLevel: number; overallLevel: number; status: string; supervisorName: string; createTime: string }
+interface InspectorTask { id: number; province: string; city: string; pm25Level: number; so2Level: number; coLevel: number; overallLevel: number; status: string; supervisorName: string; createTime: string; measuredPm25?: number; measuredSo2?: number; measuredCo?: number; measuredOverall?: number; pm25Raw?: number; so2Raw?: number; coRaw?: number; notes?: string }
 
 const userStore = useUserStore()
 const tasks = ref<InspectorTask[]>([])
@@ -139,7 +139,10 @@ const measureOverall = computed(() => Math.max(pm25Level.value, so2Level.value, 
 function loadTasks() {
   get(`/report/myTasks?assigneeId=${userStore.user?.id}`, timeParams.value)
     .then((d) => { tasks.value = (d.data as InspectorTask[]) || [] })
-    .catch(() => ElMessage.error('加载任务列表失败'))
+    .catch((e) => {
+      console.error('加载任务列表失败', e)
+      ElMessage.error('加载任务列表失败：' + (e?.message || '未知错误'))
+    })
 }
 onMounted(loadTasks)
 

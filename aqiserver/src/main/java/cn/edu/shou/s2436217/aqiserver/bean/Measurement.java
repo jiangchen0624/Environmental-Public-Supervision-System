@@ -12,6 +12,7 @@ public class Measurement implements Serializable {
     private int id;
 
     /** 关联上报ID */
+    @Column(unique = true)
     private int reportId;
 
     private int inspectorId;

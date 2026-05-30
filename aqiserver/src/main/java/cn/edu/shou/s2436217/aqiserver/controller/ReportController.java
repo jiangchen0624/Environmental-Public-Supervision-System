@@ -57,7 +57,8 @@ public class ReportController {
             @RequestParam(required = false) String endDate) {
         List<Report> l = filterByDate(startDate, endDate).stream()
             .filter(r -> r.getAssigneeId() == assigneeId).collect(java.util.stream.Collectors.toList());
-        Map<String, Object> m = new HashMap<>(); m.put("code",200); m.put("data",l); return m;
+        List<Map<String, Object>> result = joinMeasurements(l);
+        Map<String, Object> m = new HashMap<>(); m.put("code",200); m.put("data",result); return m;
     }
     @CrossOrigin(origins = "*") @RequestMapping("/assign") @ResponseBody
     public Map<String, Object> assign(@RequestBody Map<String, Object> p) {
