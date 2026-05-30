@@ -353,7 +353,8 @@ async function renderMap() {
           formatter: (params: { name: string }) => {
             const n = normCity(params.name)
             const aqi = cityOverMap[n] ?? 0
-            const cd = cityAqiData[normToOrig[n]]
+            const origName = normToOrig[n]
+            const cd = origName ? cityAqiData[origName] : undefined
             const so2 = cd?.['so2超标'] ?? 0
             const co = cd?.['co超标'] ?? 0
             const pm25 = cd?.['pm25超标'] ?? 0
@@ -389,7 +390,8 @@ async function renderMap() {
             const n = normCity(params.name)
             const aqi = cityOverMap[n] ?? 0
             // find matching city data
-            const cd = cityAqiData[normToOrig[n]]
+            const origName = normToOrig[n]
+            const cd = origName ? cityAqiData[origName] : undefined
             const so2 = cd?.['so2超标'] ?? 0
             const co = cd?.['co超标'] ?? 0
             const pm25 = cd?.['pm25超标'] ?? 0
